@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Casa Del Rosa | Reservation</title>
+  <link rel="stylesheet" href="client.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <div class="brand">Reservation</div>
+        <div class="sub">Pick available dates and submit your reservation request.</div>
+      </div>
+      <div class="row" style="max-width:360px">
+        <button class="secondary" onclick="window.location.href='home.html'">Back Home</button>
+        <button onclick="logout()">Logout</button>
+      </div>
+    </div>
+
+    <div class="card" id="calendar">
+      <div class="calhead">
+        <h3 style="margin:0">Availability Calendar</h3>
+        <div class="row" style="max-width:320px">
+          <button class="secondary" id="prevBtn" type="button">Prev</button>
+          <button class="secondary" id="nextBtn" type="button">Next</button>
+        </div>
+      </div>
+      <div class="small">Red days are already reserved (Approved bookings only).</div>
+      <div class="msg" id="calTitle"></div>
+      <div class="calendar" id="cal"></div>
+    </div>
+
+    <div class="card">
+      <h2>Reservation Form</h2>
+
+      <form id="bookingForm">
+        <div class="grid two">
+          <div>
+            <label>Full Name</label>
+            <input name="name" id="name" required />
+          </div>
+          <div>
+            <label>Email</label>
+            <input name="email" id="email" type="email" required />
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div>
+            <label>Contact Number</label>
+            <input name="contact" required />
+          </div>
+          <div>
+            <label>Guests</label>
+            <input name="guests" id="guests" type="number" min="1" required />
+          </div>
+        </div>
+
+        <div class="grid two">
+          <div>
+            <label>Check-in Date</label>
+            <input name="checkin" id="checkin" type="date" required />
+          </div>
+          <div>
+            <label>Check-out Date</label>
+            <input name="checkout" id="checkout" type="date" required />
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3>Price Details</h3>
+          <div class="small">Weekday: ₱12,000 (up to 120 guests)</div>
+          <div class="small">Weekend: ₱15,000 (up to 120 guests)</div>
+          <div class="small">Extra guest above 120: ₱100 per person</div>
+          <div class="msg" id="priceMsg"></div>
+          <h2 id="totalDisplay">₱0</h2>
+          <input type="hidden" name="total" id="totalInput" value="0">
+        </div>
+
+        <button style="margin-top:12px" type="submit">Submit Reservation Request</button>
+        <div class="msg" id="msg"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Resort Info</h3>
+
+      <div class="grid two">
+        <div>
+          <div class="badge">Location</div>
+          <div style="margin-top:8px">
+            <b>Casa Del Rosa Private Resort</b><br/>
+            <span class="small">(Apalit Pampanga)</span>
+          </div>
+
+          <div style="margin-top:14px" class="badge">Contact</div>
+          <div style="margin-top:8px">
+            <span class="small">Phone:</span> <b>0985-475-7688</b><br/>
+            <span class="small">Email:</span> <b>casadelrosa@email.com</b>
+          </div>
+        </div>
+
+        <div>
+          <div class="badge">Check-in / Check-out</div>
+          <div style="margin-top:8px">
+            <span class="small">Check-in:</span> <b>2:00 PM</b><br/>
+            <span class="small">Check-out:</span> <b>12:00 NN</b>
+          </div>
+
+          <div style="margin-top:14px" class="badge">House Rules</div>
+          <ul style="margin:8px 0 0;padding-left:18px;line-height:1.8" class="small">
+            <li>No illegal drugs / prohibited items</li>
+            <li>Keep the place clean (extra fee for heavy mess)</li>
+            <li>Respect quiet hours at night</li>
+            <li>Damage/lost items will be charged</li>
+          </ul>
+        </div>
+      </div>
+
+      <hr/>
+
+      <div class="small">
+        <b>Important:</b> Reservation will first be marked <b>Pending</b>.  
+        Admin will review it.  
+        You can only upload payment proof after it becomes <b>Approved</b>.
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="reservation.js"></script>
+</body>
+</html>

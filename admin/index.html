@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Casa Del Rosa - Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin-dashboard-page">
+  <div class="admin-dashboard-shell">
+    <header class="admin-topbar">
+      <div>
+        <p class="admin-kicker">Casa Del Rosa</p>
+        <h1>Reservation Dashboard</h1>
+        <p class="admin-lead">Manage reservations, track uploaded payment proof, and keep approved dates protected.</p>
+      </div>
+
+      <div class="admin-topbar-actions">
+        <button id="logoutBtn" type="button" class="solid-btn">Logout</button>
+      </div>
+    </header>
+
+    <section class="admin-summary-grid">
+      <article class="summary-card">
+        <span>Total Reservations</span>
+        <strong id="totalCount">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>Pending</span>
+        <strong id="pendingCount">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>Approved</span>
+        <strong id="approvedCount">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>Rejected</span>
+        <strong id="rejectedCount">0</strong>
+      </article>
+    </section>
+
+    <section class="admin-card">
+      <div class="section-head">
+        <div>
+          <p class="section-label">Reservations</p>
+          <h2>Booking Requests</h2>
+        </div>
+        <div id="statusMsg" class="msg"></div>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Contact</th>
+              <th>Guests</th>
+              <th>Check-in</th>
+              <th>Check-out</th>
+              <th>Total</th>
+              <th>Method</th>
+              <th>Proof</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

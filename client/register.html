@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Casa Del Rosa | Register</title>
+  <link rel="stylesheet" href="client.css"/>
+</head>
+<body class="auth-page auth-glass-page">
+  <div class="auth-scene">
+    <div class="auth-panel auth-panel-register">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">
+          <span class="auth-logo-stem"></span>
+          <span class="auth-logo-bloom"></span>
+        </div>
+        <div class="auth-logo-text">
+          <span>Casa Del</span>
+          <span>Rosa</span>
+        </div>
+      </div>
+
+      <div class="auth-form-wrapper">
+        <h1 class="auth-title">Sign up</h1>
+
+        <form id="registerForm" class="auth-form">
+          <div class="auth-field">
+            <label for="name">Username</label>
+            <input id="name" type="text" placeholder="Enter your username" required />
+          </div>
+
+          <div class="auth-field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="Enter your email" required />
+          </div>
+
+          <div class="auth-field">
+            <label for="password">Password</label>
+            <div class="password-wrap">
+              <input id="password" type="password" placeholder="Enter your Password" required />
+              <button class="password-toggle" type="button" data-target="password" aria-label="Show password">Show</button>
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="confirmPassword">Confirm Password</label>
+            <div class="password-wrap">
+              <input id="confirmPassword" type="password" placeholder="Enter your Password" required />
+              <button class="password-toggle" type="button" data-target="confirmPassword" aria-label="Show password">Show</button>
+            </div>
+          </div>
+
+          <button id="btnReg" type="button" class="auth-submit">Register</button>
+        </form>
+
+        <div class="msg auth-message" id="msg"></div>
+
+        <div class="auth-footer">
+          <p>Already have an Account ? <a href="login.html">Login</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    document.querySelectorAll(".password-toggle").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.target);
+        const showing = input.type === "text";
+        input.type = showing ? "password" : "text";
+        button.textContent = showing ? "Show" : "Hide";
+      });
+    });
+
+    document.getElementById("btnReg").addEventListener("click", async () => {
+      const msg = document.getElementById("msg");
+      msg.textContent = "Creating account...";
+
+      try {
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirmPassword").value;
+
+        if (password !== confirmPassword) {
+          msg.textContent = "Passwords do not match.";
+          return;
+        }
+
+        const strongPassword = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9]).{8,}$/;
+
+        if (!strongPassword.test(password)) {
+          msg.textContent = "Password must be at least 8 characters and include 1 uppercase, 1 lowercase, and 1 special character.";
+          return;
+        }
+
+        const data = await apiFetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password })
+        });
+
+        localStorage.setItem("verifyEmail", email);
+        msg.textContent = data.message || "Verification code sent.";
+        setTimeout(() => {
+          window.location.href = "verify.html";
+        }, 1000);
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    });
+  </script>
+</body>
+</html>

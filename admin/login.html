@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casa Del Rosa | Admin Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-login-page">
+  <div class="admin-login-shell">
+    <div class="admin-login-card">
+      <div class="admin-login-top">
+        <p class="admin-kicker">Control Center</p>
+        <h1>Casa Del Rosa Admin</h1>
+        <p class="admin-lead">Review reservations, approve bookings, and monitor payments from one dashboard.</p>
+      </div>
+
+      <form class="admin-login-form" onsubmit="return false;">
+        <label for="username">Username</label>
+        <input id="username" placeholder="Enter admin username">
+
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="Enter admin password">
+
+        <button id="loginBtn" type="button">Login</button>
+        <p id="msg" class="msg"></p>
+      </form>
+
+      <div class="admin-login-foot">
+        <a href="../client/home.html">Back to site</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin-auth.js"></script>
+</body>
+</html>

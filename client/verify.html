@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Casa Del Rosa | Verify Email</title>
+  <link rel="stylesheet" href="client.css"/>
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-left" style="background-image: url('assets/background.jpg');">
+      <div class="login-branding">
+        <h1>Casa Del Rosa</h1>
+        <p>Email Verification</p>
+      </div>
+    </div>
+
+    <div class="login-right">
+      <div class="login-form-wrapper">
+        <h2>Verify Your Email</h2>
+
+        <form id="verifyForm">
+          <div class="form-group">
+            <input id="email" type="email" placeholder="Email" required />
+          </div>
+
+          <div class="form-group">
+            <input id="code" type="text" placeholder="Enter 6-digit code" maxlength="6" required />
+          </div>
+
+          <button id="btnVerify" type="button" class="btn-login">Verify</button>
+          <button id="btnResend" type="button" class="btn-create" style="margin-top:10px;">Resend Code</button>
+        </form>
+
+        <div class="msg" id="msg"></div>
+
+        <div class="login-footer">
+          <p>Casa Del Rosa</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    const savedEmail = localStorage.getItem("verifyEmail");
+    if (savedEmail) {
+      document.getElementById("email").value = savedEmail;
+    }
+
+    document.getElementById("btnVerify").addEventListener("click", async () => {
+      const msg = document.getElementById("msg");
+      msg.textContent = "Verifying...";
+
+      try {
+        const email = document.getElementById("email").value.trim();
+        const code = document.getElementById("code").value.trim();
+
+        const data = await apiFetch("/api/auth/verify-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code })
+        });
+
+        msg.textContent = data.message || "Email verified.";
+        localStorage.removeItem("verifyEmail");
+
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1000);
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    });
+
+    document.getElementById("btnResend").addEventListener("click", async () => {
+      const msg = document.getElementById("msg");
+      msg.textContent = "Sending new code...";
+
+      try {
+        const email = document.getElementById("email").value.trim();
+
+        const data = await apiFetch("/api/auth/resend-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+
+        msg.textContent = data.message || "New code sent.";
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    });
+  </script>
+</body>
+</html>

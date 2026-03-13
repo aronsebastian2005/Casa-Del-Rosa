@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Casa Del Rosa | Login</title>
+  <link rel="stylesheet" href="client.css"/>
+</head>
+<body class="auth-page auth-glass-page">
+  <div id="loginLoadingScreen" class="login-loading-screen" style="display:none;">
+    <div class="login-loading-card">
+      <p class="login-loading-tag"></p>
+      <h2>Welcome to Casa Del Rosa</h2>
+      <div class="login-loading-spinner" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div class="auth-scene">
+    <div class="auth-panel">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">
+          <span class="auth-logo-stem"></span>
+          <span class="auth-logo-bloom"></span>
+        </div>
+        <div class="auth-logo-text">
+          <span>Casa Del</span>
+          <span>Rosa</span>
+        </div>
+      </div>
+
+      <div class="auth-form-wrapper">
+        <h1 class="auth-title">Sign in</h1>
+
+        <form id="loginForm" class="auth-form">
+          <div class="auth-field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="Enter your email" required />
+          </div>
+
+          <div class="auth-field">
+            <label for="password">Password</label>
+            <div class="password-wrap">
+              <input id="password" type="password" placeholder="Enter your Password" required />
+              <button class="password-toggle" type="button" data-target="password" aria-label="Show password">Show</button>
+            </div>
+          </div>
+
+          <div class="auth-meta">
+            <label class="remember-row">
+              <input type="checkbox" id="rememberMe" />
+              <span>Remember me</span>
+            </label>
+            <a href="forgot.html" class="auth-link">Forgot Password ?</a>
+          </div>
+
+          <button id="btnLogin" type="button" class="auth-submit">Login</button>
+
+          <div class="auth-secondary-links">
+            <a href="verify.html" class="auth-link subtle-link">Verify email</a>
+          </div>
+        </form>
+
+        <div class="msg auth-message" id="msg"></div>
+
+        <div class="auth-footer">
+          <p>Don't have an Account ? <a href="register.html">Register</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    document.querySelectorAll(".password-toggle").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.target);
+        const showing = input.type === "text";
+        input.type = showing ? "password" : "text";
+        button.textContent = showing ? "Show" : "Hide";
+      });
+    });
+
+    document.getElementById("btnLogin").addEventListener("click", async () => {
+      const msg = document.getElementById("msg");
+      msg.textContent = "Logging in...";
+
+      try {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+        const data = await apiFetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        setToken(data.token);
+        document.getElementById("loginLoadingScreen").style.display = "flex";
+        setTimeout(() => {
+          window.location.href = "home.html";
+        }, 1600);
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    });
+  </script>
+</body>
+</html>

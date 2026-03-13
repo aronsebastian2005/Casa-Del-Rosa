@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Casa Del Rosa | Forgot Password</title>
+  <link rel="stylesheet" href="client.css"/>
+</head>
+<body class="auth-page auth-glass-page">
+  <div class="auth-scene">
+    <div class="auth-panel">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">
+          <span class="auth-logo-stem"></span>
+          <span class="auth-logo-bloom"></span>
+        </div>
+        <div class="auth-logo-text">
+          <span>Casa Del</span>
+          <span>Rosa</span>
+        </div>
+      </div>
+
+      <div class="auth-form-wrapper">
+        <h1 class="auth-title">Forgot Password</h1>
+
+        <form id="forgotForm" class="auth-form">
+          <div class="auth-field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="Enter your email" required />
+          </div>
+
+          <button id="sendCodeBtn" type="button" class="auth-submit">Send reset code</button>
+
+          <div class="divider"></div>
+
+          <div class="auth-field">
+            <label for="code">Reset Code</label>
+            <input id="code" type="text" placeholder="6-digit code" maxlength="6" required />
+          </div>
+
+          <div class="auth-field">
+            <label for="newPassword">New Password</label>
+            <div class="password-wrap">
+              <input id="newPassword" type="password" placeholder="Enter your Password" required />
+              <button class="password-toggle" type="button" data-target="newPassword" aria-label="Show password">Show</button>
+            </div>
+          </div>
+
+          <button id="resetBtn" type="button" class="auth-submit">Reset Password</button>
+        </form>
+
+        <div class="msg auth-message" id="msg"></div>
+
+        <div class="auth-footer">
+          <p><a href="login.html">Back to login</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    const msg = document.getElementById("msg");
+
+    document.querySelectorAll(".password-toggle").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.target);
+        const showing = input.type === "text";
+        input.type = showing ? "password" : "text";
+        button.textContent = showing ? "Show" : "Hide";
+      });
+    });
+
+    document.getElementById("sendCodeBtn").addEventListener("click", async () => {
+      msg.textContent = "Sending reset code...";
+
+      try {
+        const email = document.getElementById("email").value.trim();
+
+        const data = await apiFetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email })
+        });
+
+        msg.textContent = data.message || "Reset code sent.";
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", async () => {
+      msg.textContent = "Resetting password...";
+
+      try {
+        const email = document.getElementById("email").value.trim();
+        const code = document.getElementById("code").value.trim();
+        const newPassword = document.getElementById("newPassword").value;
+
+        const data = await apiFetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code, newPassword })
+        });
+
+        msg.textContent = data.message || "Password reset successful.";
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 1200);
+      } catch (e) {
+        msg.textContent = e.message;
+      }
+    });
+  </script>
+</body>
+</html>
