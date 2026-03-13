@@ -74,6 +74,10 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+transporter.verify()
+  .then(() => console.log("Mail transporter verified"))
+  .catch((err) => console.log("MAIL TRANSPORT ERROR:", err));
+
 function auth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
@@ -204,11 +208,18 @@ async function sendVerificationEmail(toEmail, code, name) {
     </div>
   `;
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: `"Casa Del Rosa" <${EMAIL_USER}>`,
     to: toEmail,
     subject: "Your Casa Del Rosa Verification Code",
     html
+  });
+
+  console.log("Verification email sent:", {
+    to: toEmail,
+    accepted: info.accepted,
+    rejected: info.rejected,
+    response: info.response
   });
 }
 
@@ -224,11 +235,18 @@ async function sendResetPasswordEmail(toEmail, code, name) {
     </div>
   `;
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: `"Casa Del Rosa" <${EMAIL_USER}>`,
     to: toEmail,
     subject: "Your Casa Del Rosa Password Reset Code",
     html
+  });
+
+  console.log("Reset email sent:", {
+    to: toEmail,
+    accepted: info.accepted,
+    rejected: info.rejected,
+    response: info.response
   });
 }
 
