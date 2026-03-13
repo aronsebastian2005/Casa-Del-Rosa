@@ -7,6 +7,7 @@ const approvedCount = document.getElementById("approvedCount");
 const rejectedCount = document.getElementById("rejectedCount");
 let hasLoadedOnce = false;
 let lastBookingsSnapshot = "";
+let isRefreshing = false;
 
 const API =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -38,19 +39,29 @@ function updateSummary(bookings) {
   rejectedCount.textContent = String(rejected);
 }
 
-async function loadBookings() {
+function restoreScrollPosition(scrollY) {
+  window.requestAnimationFrame(() => {
+    window.scrollTo({ top: scrollY, behavior: "auto" });
+  });
+}
+
+async function loadBookings(options = {}) {
   if (!rows || !msg) return;
+  if (isRefreshing) return;
 
   if (localStorage.getItem("adminLoggedIn") !== "true") {
     window.location.href = "login.html";
     return;
   }
 
-  if (!hasLoadedOnce) {
+  const { silent = false } = options;
+
+  if (!hasLoadedOnce && !silent) {
     msg.textContent = "Loading bookings...";
   }
 
   try {
+    isRefreshing = true;
     const res = await fetch(`${API}/api/bookings`);
     const text = await res.text();
 
@@ -73,19 +84,26 @@ async function loadBookings() {
     updateSummary(data);
 
     if (data.length === 0) {
-      msg.textContent = "No reservations yet.";
+      if (!silent || !hasLoadedOnce) {
+        msg.textContent = "No reservations yet.";
+      }
+      const scrollY = window.scrollY;
       rows.replaceChildren();
       hasLoadedOnce = true;
       lastBookingsSnapshot = snapshot;
+      restoreScrollPosition(scrollY);
       return;
     }
 
     if (snapshot === lastBookingsSnapshot) {
-      msg.textContent = `Loaded ${data.length} reservation(s).`;
+      if (!silent || !hasLoadedOnce) {
+        msg.textContent = `Loaded ${data.length} reservation(s).`;
+      }
       hasLoadedOnce = true;
       return;
     }
 
+    const scrollY = window.scrollY;
     const fragment = document.createDocumentFragment();
 
     data.forEach((booking) => {
@@ -115,12 +133,17 @@ async function loadBookings() {
     });
 
     rows.replaceChildren(fragment);
-    msg.textContent = `Loaded ${data.length} reservation(s).`;
+    if (!silent || !hasLoadedOnce) {
+      msg.textContent = `Loaded ${data.length} reservation(s).`;
+    }
     hasLoadedOnce = true;
     lastBookingsSnapshot = snapshot;
+    restoreScrollPosition(scrollY);
   } catch (err) {
     console.log(err);
     msg.textContent = err.message;
+  } finally {
+    isRefreshing = false;
   }
 }
 
@@ -200,4 +223,6 @@ if (logoutBtn) {
 }
 
 loadBookings();
-setInterval(loadBookings, 5000);
+setInterval(() => {
+  loadBookings({ silent: true });
+}, 5000);
