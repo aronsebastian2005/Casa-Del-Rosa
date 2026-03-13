@@ -36,6 +36,7 @@ loadEnvFile();
 
 const Booking = require("./models/Booking");
 const User = require("./models/user");
+const AdminSettings = require("./models/AdminSettings");
 
 const app = express();
 
@@ -73,7 +74,9 @@ const JWT_SECRET = process.env.JWT_SECRET || "";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@casadelrosa.local";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const MANAGER_SECRET = process.env.MANAGER_SECRET || "";
 const PORT = Number(process.env.PORT || 5000);
 
 if (!MONGODB_URI || !JWT_SECRET || !RESEND_API_KEY || !RESEND_FROM_EMAIL) {
@@ -154,6 +157,22 @@ function adminAuth(req, res, next) {
   } catch (e) {
     return res.status(401).json({ message: "Invalid admin token" });
   }
+}
+
+async function getOrCreateAdminSettings() {
+  let settings = await AdminSettings.findOne().sort({ createdAt: 1 });
+
+  if (settings) {
+    return settings;
+  }
+
+  settings = await AdminSettings.create({
+    username: ADMIN_USERNAME,
+    email: String(ADMIN_EMAIL).trim().toLowerCase(),
+    passwordHash: await bcrypt.hash(ADMIN_PASSWORD, 10)
+  });
+
+  return settings;
 }
 
 const storage = multer.diskStorage({
@@ -577,12 +596,23 @@ app.post("/api/admin/login", async (req, res) => {
       return sendJsonError(res, 400, "Username and password are required");
     }
 
-    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    const settings = await getOrCreateAdminSettings();
+    const identifier = username.toLowerCase();
+    const matchesIdentity =
+      settings.username.toLowerCase() === identifier ||
+      settings.email.toLowerCase() === identifier;
+
+    if (!matchesIdentity) {
+      return sendJsonError(res, 401, "Invalid admin username or password");
+    }
+
+    const ok = await bcrypt.compare(password, settings.passwordHash);
+    if (!ok) {
       return sendJsonError(res, 401, "Invalid admin username or password");
     }
 
     const token = jwt.sign(
-      { role: "admin", username: ADMIN_USERNAME },
+      { role: "admin", username: settings.username, email: settings.email },
       JWT_SECRET,
       { expiresIn: "12h" }
     );
@@ -590,12 +620,86 @@ app.post("/api/admin/login", async (req, res) => {
     return res.json({
       token,
       admin: {
-        username: ADMIN_USERNAME
+        username: settings.username,
+        email: settings.email
       }
     });
   } catch (err) {
     console.log("ADMIN LOGIN ERROR:", err);
     return sendJsonError(res, 500, "Admin login failed", err);
+  }
+});
+
+app.get("/api/admin/settings", adminAuth, async (req, res) => {
+  try {
+    const settings = await getOrCreateAdminSettings();
+
+    return res.json({
+      username: settings.username,
+      email: settings.email
+    });
+  } catch (err) {
+    console.log("ADMIN SETTINGS LOAD ERROR:", err);
+    return sendJsonError(res, 500, "Failed to load admin settings", err);
+  }
+});
+
+app.put("/api/admin/settings", adminAuth, async (req, res) => {
+  try {
+    const username = String(req.body.username || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const newPassword = String(req.body.newPassword || "");
+    const managerSecret = String(req.body.managerSecret || "").trim();
+
+    if (!MANAGER_SECRET) {
+      return sendJsonError(res, 500, "Manager secret is not configured on the server");
+    }
+
+    if (!managerSecret) {
+      return sendJsonError(res, 400, "Manager secret is required");
+    }
+
+    if (managerSecret !== MANAGER_SECRET) {
+      return sendJsonError(res, 403, "Invalid manager secret");
+    }
+
+    if (!username || !email) {
+      return sendJsonError(res, 400, "Username and email are required");
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return sendJsonError(res, 400, "Please enter a valid email address");
+    }
+
+    const settings = await getOrCreateAdminSettings();
+    settings.username = username;
+    settings.email = email;
+
+    if (newPassword) {
+      const strongPassword = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9]).{8,}$/;
+      if (!strongPassword.test(newPassword)) {
+        return sendJsonError(
+          res,
+          400,
+          "Password must be at least 8 characters and include 1 uppercase, 1 lowercase, and 1 special character"
+        );
+      }
+
+      settings.passwordHash = await bcrypt.hash(newPassword, 10);
+    }
+
+    await settings.save();
+
+    return res.json({
+      message: "Admin credentials updated successfully",
+      admin: {
+        username: settings.username,
+        email: settings.email
+      }
+    });
+  } catch (err) {
+    console.log("ADMIN SETTINGS UPDATE ERROR:", err);
+    return sendJsonError(res, 500, "Failed to update admin settings", err);
   }
 });
 

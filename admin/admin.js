@@ -5,6 +5,7 @@ const totalCount = document.getElementById("totalCount");
 const pendingCount = document.getElementById("pendingCount");
 const approvedCount = document.getElementById("approvedCount");
 const rejectedCount = document.getElementById("rejectedCount");
+const settingsMsg = document.getElementById("settingsMsg");
 let hasLoadedOnce = false;
 let lastBookingsSnapshot = "";
 let isRefreshing = false;
@@ -167,6 +168,86 @@ async function loadBookings(options = {}) {
   }
 }
 
+async function loadAdminSettings() {
+  const adminToken = getAdminToken();
+  if (!adminToken) {
+    logoutAdmin();
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/api/admin/settings`, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`
+      }
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw new Error(data && data.message ? data.message : `Settings load failed (${res.status})`);
+    }
+
+    const usernameInput = document.getElementById("adminUsername");
+    const emailInput = document.getElementById("adminEmail");
+
+    if (usernameInput) usernameInput.value = data.username || "";
+    if (emailInput) emailInput.value = data.email || "";
+  } catch (error) {
+    console.log(error);
+    if (/token/i.test(error.message) || /access/i.test(error.message)) {
+      logoutAdmin();
+      return;
+    }
+
+    if (settingsMsg) {
+      settingsMsg.textContent = error.message;
+    }
+  }
+}
+
+async function saveAdminSettings() {
+  if (!settingsMsg) return;
+
+  const username = document.getElementById("adminUsername").value.trim();
+  const email = document.getElementById("adminEmail").value.trim();
+  const newPassword = document.getElementById("adminPassword").value;
+  const managerSecret = document.getElementById("managerSecret").value.trim();
+
+  settingsMsg.textContent = "Saving admin settings...";
+
+  try {
+    const adminToken = getAdminToken();
+    const res = await fetch(`${API}/api/admin/settings`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminToken}`
+      },
+      body: JSON.stringify({ username, email, newPassword, managerSecret })
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      throw new Error(data && data.message ? data.message : `Settings update failed (${res.status})`);
+    }
+
+    settingsMsg.textContent = data.message || "Admin credentials updated successfully.";
+    document.getElementById("adminPassword").value = "";
+    document.getElementById("managerSecret").value = "";
+    await loadAdminSettings();
+  } catch (error) {
+    console.log(error);
+    if (/token/i.test(error.message) || /access/i.test(error.message)) {
+      logoutAdmin();
+      return;
+    }
+
+    settingsMsg.textContent = error.message;
+  }
+}
+
 async function approve(id) {
   if (!msg) return;
   msg.textContent = "Approving...";
@@ -257,7 +338,13 @@ if (logoutBtn) {
   });
 }
 
+const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+if (saveSettingsBtn) {
+  saveSettingsBtn.addEventListener("click", saveAdminSettings);
+}
+
 loadBookings();
+loadAdminSettings();
 setInterval(() => {
   loadBookings({ silent: true });
 }, 5000);
