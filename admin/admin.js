@@ -5,6 +5,8 @@ const totalCount = document.getElementById("totalCount");
 const pendingCount = document.getElementById("pendingCount");
 const approvedCount = document.getElementById("approvedCount");
 const rejectedCount = document.getElementById("rejectedCount");
+let hasLoadedOnce = false;
+let lastBookingsSnapshot = "";
 
 const API =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -39,12 +41,13 @@ function updateSummary(bookings) {
 async function loadBookings() {
   if (!rows || !msg) return;
 
-  msg.textContent = "Loading bookings...";
-  rows.innerHTML = "";
-
   if (localStorage.getItem("adminLoggedIn") !== "true") {
     window.location.href = "login.html";
     return;
+  }
+
+  if (!hasLoadedOnce) {
+    msg.textContent = "Loading bookings...";
   }
 
   try {
@@ -66,14 +69,24 @@ async function loadBookings() {
       throw new Error("Unexpected bookings response");
     }
 
+    const snapshot = JSON.stringify(data);
     updateSummary(data);
 
     if (data.length === 0) {
       msg.textContent = "No reservations yet.";
+      rows.replaceChildren();
+      hasLoadedOnce = true;
+      lastBookingsSnapshot = snapshot;
       return;
     }
 
-    msg.textContent = `Loaded ${data.length} reservation(s).`;
+    if (snapshot === lastBookingsSnapshot) {
+      msg.textContent = `Loaded ${data.length} reservation(s).`;
+      hasLoadedOnce = true;
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
 
     data.forEach((booking) => {
       const tr = document.createElement("tr");
@@ -98,8 +111,13 @@ async function loadBookings() {
         </td>
       `;
 
-      rows.appendChild(tr);
+      fragment.appendChild(tr);
     });
+
+    rows.replaceChildren(fragment);
+    msg.textContent = `Loaded ${data.length} reservation(s).`;
+    hasLoadedOnce = true;
+    lastBookingsSnapshot = snapshot;
   } catch (err) {
     console.log(err);
     msg.textContent = err.message;
