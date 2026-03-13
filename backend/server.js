@@ -4,7 +4,6 @@ const cors = require("cors");
 const multer = require("multer");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
 const fs = require("fs");
 const path = require("path");
 
@@ -71,11 +70,11 @@ app.use("/uploads", express.static(uploadsPath));
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const JWT_SECRET = process.env.JWT_SECRET || "";
-const EMAIL_USER = process.env.EMAIL_USER || "";
-const EMAIL_PASS = process.env.EMAIL_PASS || "";
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "";
 const PORT = Number(process.env.PORT || 5000);
 
-if (!MONGODB_URI || !JWT_SECRET || !EMAIL_USER || !EMAIL_PASS) {
+if (!MONGODB_URI || !JWT_SECRET || !RESEND_API_KEY || !RESEND_FROM_EMAIL) {
   console.error("Missing required environment variables. Check backend/.env or hosting env settings.");
   process.exit(1);
 }
@@ -84,17 +83,38 @@ mongoose.connect(MONGODB_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.log("❌ MongoDB error:", err));
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS
-  }
-});
+async function sendResendEmail({ to, subject, html }) {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: RESEND_FROM_EMAIL,
+      to,
+      subject,
+      html
+    })
+  });
 
-transporter.verify()
-  .then(() => console.log("Mail transporter verified"))
-  .catch((err) => console.log("MAIL TRANSPORT ERROR:", err));
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(
+      data && data.message
+        ? `Resend error: ${data.message}`
+        : `Resend request failed (${res.status})`
+    );
+  }
+
+  console.log("Resend email sent:", {
+    to,
+    id: data && data.id ? data.id : null
+  });
+
+  return data;
+}
 
 function auth(req, res, next) {
   const header = req.headers.authorization || "";
@@ -232,18 +252,10 @@ async function sendVerificationEmail(toEmail, code, name) {
     </div>
   `;
 
-  const info = await transporter.sendMail({
-    from: `"Casa Del Rosa" <${EMAIL_USER}>`,
+  await sendResendEmail({
     to: toEmail,
     subject: "Your Casa Del Rosa Verification Code",
     html
-  });
-
-  console.log("Verification email sent:", {
-    to: toEmail,
-    accepted: info.accepted,
-    rejected: info.rejected,
-    response: info.response
   });
 }
 
@@ -259,18 +271,10 @@ async function sendResetPasswordEmail(toEmail, code, name) {
     </div>
   `;
 
-  const info = await transporter.sendMail({
-    from: `"Casa Del Rosa" <${EMAIL_USER}>`,
+  await sendResendEmail({
     to: toEmail,
     subject: "Your Casa Del Rosa Password Reset Code",
     html
-  });
-
-  console.log("Reset email sent:", {
-    to: toEmail,
-    accepted: info.accepted,
-    rejected: info.rejected,
-    response: info.response
   });
 }
 
