@@ -268,11 +268,10 @@ app.post("/api/auth/register", async (req, res) => {
       existingUser.verificationCode = code;
       existingUser.verificationCodeExpires = expires;
       await existingUser.save();
-
-      console.log("Verification code for", normalizedEmail, "is", code);
+      await sendVerificationEmail(normalizedEmail, code, trimmedName);
 
       return res.json({
-        message: "Registered successfully. Check server console for verification code.",
+        message: "Verification code sent to your email",
         email: normalizedEmail
       });
     }
@@ -368,10 +367,9 @@ app.post("/api/auth/resend-code", async (req, res) => {
     user.verificationCode = code;
     user.verificationCodeExpires = expires;
     await user.save();
+    await sendVerificationEmail(normalizedEmail, code, user.name);
 
-    console.log("Resend verification code for", normalizedEmail, "is", code);
-
-    return res.json({ message: "New verification code generated. Check server console." });
+    return res.json({ message: "New verification code sent to your email" });
   } catch (err) {
     console.log("RESEND ERROR:", err);
     return sendJsonError(res, 500, "Resend failed", err);
