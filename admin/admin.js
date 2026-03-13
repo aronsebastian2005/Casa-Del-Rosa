@@ -6,7 +6,10 @@ const pendingCount = document.getElementById("pendingCount");
 const approvedCount = document.getElementById("approvedCount");
 const rejectedCount = document.getElementById("rejectedCount");
 
-const API = "http://localhost:5000";
+const API =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000"
+    : "https://casa-del-rosa.onrender.com";
 
 function badgeClass(status) {
   const normalized = (status || "Pending").toLowerCase();
