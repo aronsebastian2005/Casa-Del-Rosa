@@ -10,6 +10,16 @@
   <link rel="stylesheet" href="admin.css">
 </head>
 <body class="admin-login-page">
+  <div id="adminLoadingScreen" class="admin-loading-screen" style="display:none;">
+    <div class="admin-loading-card">
+      <p class="admin-kicker">Signing in</p>
+      <h2>Preparing dashboard</h2>
+      <div class="admin-loading-bar" aria-hidden="true">
+        <span></span>
+      </div>
+    </div>
+  </div>
+
   <div class="admin-login-shell">
     <div class="admin-login-card">
       <div class="admin-login-top">
@@ -21,9 +31,11 @@
       <form class="admin-login-form" onsubmit="return false;">
         <label for="username">Username</label>
         <input id="username" placeholder="Enter admin username">
+        <div class="admin-field-message" id="usernameMsg"></div>
 
         <label for="password">Password</label>
         <input id="password" type="password" placeholder="Enter admin password">
+        <div class="admin-field-message" id="passwordMsg"></div>
 
         <button id="loginBtn" type="button">Login</button>
         <p id="msg" class="msg"></p>

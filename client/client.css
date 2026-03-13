@@ -1120,6 +1120,19 @@ th{
   box-shadow:0 12px 26px rgba(138,90,35,.18);
 }
 
+.auth-submit.secondary-action{
+  margin-top:2px;
+  background:transparent;
+  border:1px solid rgba(158,106,32,.45);
+  color:#8a5a23;
+}
+
+.auth-submit.secondary-action:hover{
+  background:rgba(158,106,32,.08);
+  color:#8a5a23;
+  box-shadow:none;
+}
+
 .auth-secondary-links{
   display:flex;
   justify-content:flex-end;

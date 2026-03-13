@@ -45,12 +45,24 @@ function restoreScrollPosition(scrollY) {
   });
 }
 
+function getAdminToken() {
+  return localStorage.getItem("adminToken");
+}
+
+function logoutAdmin() {
+  localStorage.removeItem("adminToken");
+  localStorage.removeItem("adminUsername");
+  window.location.href = "login.html";
+}
+
 async function loadBookings(options = {}) {
   if (!rows || !msg) return;
   if (isRefreshing) return;
 
-  if (localStorage.getItem("adminLoggedIn") !== "true") {
-    window.location.href = "login.html";
+  const adminToken = getAdminToken();
+
+  if (!adminToken) {
+    logoutAdmin();
     return;
   }
 
@@ -62,7 +74,11 @@ async function loadBookings(options = {}) {
 
   try {
     isRefreshing = true;
-    const res = await fetch(`${API}/api/bookings`);
+    const res = await fetch(`${API}/api/bookings`, {
+      headers: {
+        Authorization: `Bearer ${adminToken}`
+      }
+    });
     const text = await res.text();
 
     let data;
@@ -141,6 +157,10 @@ async function loadBookings(options = {}) {
     restoreScrollPosition(scrollY);
   } catch (err) {
     console.log(err);
+    if (/token/i.test(err.message) || /access/i.test(err.message)) {
+      logoutAdmin();
+      return;
+    }
     msg.textContent = err.message;
   } finally {
     isRefreshing = false;
@@ -152,8 +172,12 @@ async function approve(id) {
   msg.textContent = "Approving...";
 
   try {
+    const adminToken = getAdminToken();
     const res = await fetch(`${API}/api/approve/${id}`, {
-      method: "PUT"
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${adminToken}`
+      }
     });
 
     const text = await res.text();
@@ -173,6 +197,10 @@ async function approve(id) {
     await loadBookings();
   } catch (err) {
     console.log(err);
+    if (/token/i.test(err.message) || /access/i.test(err.message)) {
+      logoutAdmin();
+      return;
+    }
     msg.textContent = err.message;
   }
 }
@@ -182,8 +210,12 @@ async function reject(id) {
   msg.textContent = "Rejecting...";
 
   try {
+    const adminToken = getAdminToken();
     const res = await fetch(`${API}/api/reject/${id}`, {
-      method: "PUT"
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${adminToken}`
+      }
     });
 
     const text = await res.text();
@@ -203,6 +235,10 @@ async function reject(id) {
     await loadBookings();
   } catch (err) {
     console.log(err);
+    if (/token/i.test(err.message) || /access/i.test(err.message)) {
+      logoutAdmin();
+      return;
+    }
     msg.textContent = err.message;
   }
 }
@@ -217,8 +253,7 @@ if (rows) {
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("adminLoggedIn");
-    window.location.href = "login.html";
+    logoutAdmin();
   });
 }
 

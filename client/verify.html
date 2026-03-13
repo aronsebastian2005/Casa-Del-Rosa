@@ -6,38 +6,44 @@
   <title>Casa Del Rosa | Verify Email</title>
   <link rel="stylesheet" href="client.css"/>
 </head>
-<body class="login-page">
-  <div class="login-container">
-    <div class="login-left" style="background-image: url('assets/background.jpg');">
-      <div class="login-branding">
-        <h1>Casa Del Rosa</h1>
-        <p>Email Verification</p>
+<body class="auth-page auth-glass-page">
+  <div class="auth-scene">
+    <div class="auth-panel">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">
+          <span class="auth-logo-stem"></span>
+          <span class="auth-logo-bloom"></span>
+        </div>
+        <div class="auth-logo-text">
+          <span>Casa Del</span>
+          <span>Rosa</span>
+        </div>
       </div>
-    </div>
 
-    <div class="login-right">
-      <div class="login-form-wrapper">
-        <h2>Verify Your Email</h2>
+      <div class="auth-form-wrapper">
+        <h1 class="auth-title">Verify Email</h1>
 
-        <form id="verifyForm">
-          <div class="form-group">
-            <input id="email" type="email" placeholder="Email" required />
+        <form id="verifyForm" class="auth-form">
+          <div class="auth-field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="Enter your email" required />
             <div class="field-message" id="emailMsg"></div>
           </div>
 
-          <div class="form-group">
+          <div class="auth-field">
+            <label for="code">Verification Code</label>
             <input id="code" type="text" placeholder="Enter 6-digit code" maxlength="6" required />
             <div class="field-message" id="codeMsg"></div>
           </div>
 
-          <button id="btnVerify" type="button" class="btn-login">Verify</button>
-          <button id="btnResend" type="button" class="btn-create" style="margin-top:10px;">Resend Code</button>
+          <button id="btnVerify" type="button" class="auth-submit">Verify</button>
+          <button id="btnResend" type="button" class="auth-submit secondary-action">Resend Code</button>
         </form>
 
-        <div class="msg" id="msg"></div>
+        <div class="msg auth-message" id="msg"></div>
 
-        <div class="login-footer">
-          <p>Casa Del Rosa</p>
+        <div class="auth-footer">
+          <p>Already verified? <a href="login.html">Back to login</a></p>
         </div>
       </div>
     </div>

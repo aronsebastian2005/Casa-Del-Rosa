@@ -72,6 +72,8 @@ const MONGODB_URI = process.env.MONGODB_URI || "";
 const JWT_SECRET = process.env.JWT_SECRET || "";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const PORT = Number(process.env.PORT || 5000);
 
 if (!MONGODB_URI || !JWT_SECRET || !RESEND_API_KEY || !RESEND_FROM_EMAIL) {
@@ -129,6 +131,28 @@ function auth(req, res, next) {
     next();
   } catch (e) {
     return res.status(401).json({ message: "Invalid token" });
+  }
+}
+
+function adminAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ message: "No admin token" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    req.admin = decoded;
+    next();
+  } catch (e) {
+    return res.status(401).json({ message: "Invalid admin token" });
   }
 }
 
@@ -544,6 +568,37 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+app.post("/api/admin/login", async (req, res) => {
+  try {
+    const username = String(req.body.username || "").trim();
+    const password = String(req.body.password || "").trim();
+
+    if (!username || !password) {
+      return sendJsonError(res, 400, "Username and password are required");
+    }
+
+    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+      return sendJsonError(res, 401, "Invalid admin username or password");
+    }
+
+    const token = jwt.sign(
+      { role: "admin", username: ADMIN_USERNAME },
+      JWT_SECRET,
+      { expiresIn: "12h" }
+    );
+
+    return res.json({
+      token,
+      admin: {
+        username: ADMIN_USERNAME
+      }
+    });
+  } catch (err) {
+    console.log("ADMIN LOGIN ERROR:", err);
+    return sendJsonError(res, 500, "Admin login failed", err);
+  }
+});
+
 // ---------- BOOKINGS ----------
 app.post("/api/book", auth, async (req, res) => {
   try {
@@ -612,7 +667,7 @@ app.post("/api/book", auth, async (req, res) => {
   }
 });
 
-app.get("/api/bookings", async (req, res) => {
+app.get("/api/bookings", adminAuth, async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ createdAt: -1 });
     return res.json(bookings);
@@ -621,7 +676,7 @@ app.get("/api/bookings", async (req, res) => {
   }
 });
 
-app.put("/api/approve/:id", async (req, res) => {
+app.put("/api/approve/:id", adminAuth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
 
@@ -659,7 +714,7 @@ app.put("/api/approve/:id", async (req, res) => {
   }
 });
 
-app.put("/api/reject/:id", async (req, res) => {
+app.put("/api/reject/:id", adminAuth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
 
