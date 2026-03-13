@@ -40,7 +40,25 @@ const User = require("./models/user");
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "http://localhost:5000",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:5000",
+  "https://casa-del-rosa-frontend.onrender.com",
+  "https://casa-del-rosa-admin.onrender.com"
+]);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  }
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
