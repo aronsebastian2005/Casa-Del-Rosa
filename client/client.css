@@ -1201,61 +1201,88 @@ th{
 @media (max-width:720px){
   .landing-hero{
     min-height:100svh;
-    padding:10px 14px 34px;
+    padding:8px 12px 28px;
   }
 
   .landing-nav{
     top:8px;
-    left:14px;
-    right:14px;
-    padding:12px 14px;
+    left:12px;
+    right:12px;
+    gap:12px;
+    padding:10px 12px 12px;
   }
 
   .landing-brand-group{
-    gap:12px;
+    gap:10px;
+    width:100%;
   }
 
   .menu-toggle{
-    width:48px;
-    height:48px;
+    width:44px;
+    height:44px;
+    gap:6px;
+  }
+
+  .menu-toggle span{
+    width:18px;
   }
 
   .brand-mark{
-    font-size:1.7rem;
+    font-size:1.35rem;
+    letter-spacing:.06em;
+  }
+
+  .brand-copy{
+    margin-top:4px;
+    font-size:.58rem;
+    letter-spacing:.2em;
   }
 
   .landing-links{
-    justify-content:flex-start;
-    gap:16px;
-    font-size:.88rem;
+    justify-content:space-between;
+    gap:10px 14px;
+    font-size:.82rem;
+    padding-top:0;
   }
 
   .landing-link{
-    padding:4px 0;
+    padding:2px 0;
+    font-size:.82rem;
   }
 
   .landing-actions{
     width:100%;
+    gap:10px;
   }
 
   .landing-actions .nav-cta{
     flex:1;
+    min-width:0;
+    padding:11px 12px;
+    font-size:.82rem;
   }
 
   .hero-copy{
     align-items:flex-start;
     text-align:left;
-    min-height:56vh;
-    padding-top:118px;
+    min-height:60vh;
+    padding-top:210px;
+  }
+
+  .eyebrow{
+    margin-bottom:10px;
+    font-size:.68rem;
+    letter-spacing:.22em;
   }
 
   .hero-copy h1{
-    font-size:clamp(3.1rem, 14vw, 5rem);
+    font-size:clamp(2.6rem, 12vw, 4rem);
+    line-height:.96;
   }
 
   .hero-copy h1 em{
-    margin-top:6px;
-    font-size:clamp(4rem, 18vw, 6rem);
+    margin-top:4px;
+    font-size:clamp(3.2rem, 16vw, 5rem);
   }
 
   .hero-buttons,
@@ -1266,6 +1293,18 @@ th{
   .hero-buttons button,
   .row > *{
     width:100%;
+  }
+
+  .hero-buttons{
+    width:100%;
+    gap:12px;
+    margin-top:22px;
+  }
+
+  .hero-buttons button{
+    min-width:0;
+    padding:14px 18px;
+    font-size:.92rem;
   }
 
   .landing-section{
@@ -1348,5 +1387,53 @@ th{
   .auth-footer{
     margin-top:18px;
     font-size:.92rem;
+  }
+}
+
+@media (max-width:480px){
+  .landing-nav{
+    padding:10px 10px 12px;
+  }
+
+  .landing-brand{
+    min-width:0;
+  }
+
+  .brand-mark{
+    font-size:1.18rem;
+  }
+
+  .brand-copy{
+    font-size:.52rem;
+    letter-spacing:.16em;
+  }
+
+  .landing-links{
+    gap:8px 12px;
+  }
+
+  .landing-link{
+    font-size:.76rem;
+  }
+
+  .landing-actions .nav-cta{
+    font-size:.76rem;
+    padding:10px 10px;
+  }
+
+  .hero-copy{
+    padding-top:198px;
+  }
+
+  .hero-copy h1{
+    font-size:clamp(2.25rem, 11vw, 3.4rem);
+  }
+
+  .hero-copy h1 em{
+    font-size:clamp(2.9rem, 15vw, 4.3rem);
+  }
+
+  .hero-buttons button{
+    font-size:.88rem;
   }
 }
