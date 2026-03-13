@@ -22,10 +22,12 @@
         <form id="verifyForm">
           <div class="form-group">
             <input id="email" type="email" placeholder="Email" required />
+            <div class="field-message" id="emailMsg"></div>
           </div>
 
           <div class="form-group">
             <input id="code" type="text" placeholder="Enter 6-digit code" maxlength="6" required />
+            <div class="field-message" id="codeMsg"></div>
           </div>
 
           <button id="btnVerify" type="button" class="btn-login">Verify</button>
@@ -43,18 +45,46 @@
 
   <script src="auth.js"></script>
   <script>
+    const msg = document.getElementById("msg");
+    const emailMsg = document.getElementById("emailMsg");
+    const codeMsg = document.getElementById("codeMsg");
+
+    function clearFieldMessages() {
+      [emailMsg, codeMsg].forEach((element) => {
+        element.textContent = "";
+        element.className = "field-message";
+      });
+    }
+
+    function setFieldMessage(element, text, type = "error") {
+      element.textContent = text;
+      element.className = `field-message ${type}`;
+    }
+
     const savedEmail = localStorage.getItem("verifyEmail");
     if (savedEmail) {
       document.getElementById("email").value = savedEmail;
     }
 
     document.getElementById("btnVerify").addEventListener("click", async () => {
-      const msg = document.getElementById("msg");
+      clearFieldMessages();
       msg.textContent = "Verifying...";
 
       try {
         const email = document.getElementById("email").value.trim();
         const code = document.getElementById("code").value.trim();
+
+        if (!email) {
+          setFieldMessage(emailMsg, "Please enter your email.");
+          msg.textContent = "";
+          return;
+        }
+
+        if (!code) {
+          setFieldMessage(codeMsg, "Please enter the 6-digit code.");
+          msg.textContent = "";
+          return;
+        }
 
         const data = await apiFetch("/api/auth/verify-email", {
           method: "POST",
@@ -69,16 +99,34 @@
           window.location.href = "login.html";
         }, 1000);
       } catch (e) {
+        if (/email/i.test(e.message)) {
+          setFieldMessage(emailMsg, e.message);
+          msg.textContent = "";
+          return;
+        }
+
+        if (/code/i.test(e.message) || /verification/i.test(e.message)) {
+          setFieldMessage(codeMsg, e.message);
+          msg.textContent = "";
+          return;
+        }
+
         msg.textContent = e.message;
       }
     });
 
     document.getElementById("btnResend").addEventListener("click", async () => {
-      const msg = document.getElementById("msg");
+      clearFieldMessages();
       msg.textContent = "Sending new code...";
 
       try {
         const email = document.getElementById("email").value.trim();
+
+        if (!email) {
+          setFieldMessage(emailMsg, "Please enter your email.");
+          msg.textContent = "";
+          return;
+        }
 
         const data = await apiFetch("/api/auth/resend-code", {
           method: "POST",
@@ -86,8 +134,15 @@
           body: JSON.stringify({ email })
         });
 
+        setFieldMessage(emailMsg, data.message || "New code sent to this email.", "success");
         msg.textContent = data.message || "New code sent.";
       } catch (e) {
+        if (/email/i.test(e.message)) {
+          setFieldMessage(emailMsg, e.message);
+          msg.textContent = "";
+          return;
+        }
+
         msg.textContent = e.message;
       }
     });

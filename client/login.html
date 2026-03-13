@@ -35,6 +35,7 @@
           <div class="auth-field">
             <label for="email">Email</label>
             <input id="email" type="email" placeholder="Enter your email" required />
+            <div class="field-message" id="emailMsg"></div>
           </div>
 
           <div class="auth-field">
@@ -43,6 +44,7 @@
               <input id="password" type="password" placeholder="Enter your Password" required />
               <button class="password-toggle" type="button" data-target="password" aria-label="Show password">Show</button>
             </div>
+            <div class="field-message" id="passwordMsg"></div>
           </div>
 
           <div class="auth-meta">
@@ -71,6 +73,22 @@
 
   <script src="auth.js"></script>
   <script>
+    const msg = document.getElementById("msg");
+    const emailMsg = document.getElementById("emailMsg");
+    const passwordMsg = document.getElementById("passwordMsg");
+
+    function clearFieldMessages() {
+      [emailMsg, passwordMsg].forEach((element) => {
+        element.textContent = "";
+        element.className = "field-message";
+      });
+    }
+
+    function setFieldMessage(element, text, type = "error") {
+      element.textContent = text;
+      element.className = `field-message ${type}`;
+    }
+
     document.querySelectorAll(".password-toggle").forEach((button) => {
       button.addEventListener("click", () => {
         const input = document.getElementById(button.dataset.target);
@@ -81,12 +99,24 @@
     });
 
     document.getElementById("btnLogin").addEventListener("click", async () => {
-      const msg = document.getElementById("msg");
+      clearFieldMessages();
       msg.textContent = "Logging in...";
 
       try {
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
+
+        if (!email) {
+          setFieldMessage(emailMsg, "Please enter your email.");
+          msg.textContent = "";
+          return;
+        }
+
+        if (!password) {
+          setFieldMessage(passwordMsg, "Please enter your password.");
+          msg.textContent = "";
+          return;
+        }
 
         const data = await apiFetch("/api/auth/login", {
           method: "POST",
@@ -100,6 +130,18 @@
           window.location.href = "home.html";
         }, 1600);
       } catch (e) {
+        if (/email/i.test(e.message)) {
+          setFieldMessage(emailMsg, e.message);
+          msg.textContent = "";
+          return;
+        }
+
+        if (/password/i.test(e.message)) {
+          setFieldMessage(passwordMsg, e.message);
+          msg.textContent = "";
+          return;
+        }
+
         msg.textContent = e.message;
       }
     });

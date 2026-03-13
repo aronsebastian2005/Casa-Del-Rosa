@@ -27,11 +27,13 @@
           <div class="auth-field">
             <label for="name">Username</label>
             <input id="name" type="text" placeholder="Enter your username" required />
+            <div class="field-message" id="nameMsg"></div>
           </div>
 
           <div class="auth-field">
             <label for="email">Email</label>
             <input id="email" type="email" placeholder="Enter your email" required />
+            <div class="field-message" id="emailMsg"></div>
           </div>
 
           <div class="auth-field">
@@ -40,6 +42,7 @@
               <input id="password" type="password" placeholder="Enter your Password" required />
               <button class="password-toggle" type="button" data-target="password" aria-label="Show password">Show</button>
             </div>
+            <div class="field-message" id="passwordMsg"></div>
           </div>
 
           <div class="auth-field">
@@ -48,6 +51,7 @@
               <input id="confirmPassword" type="password" placeholder="Enter your Password" required />
               <button class="password-toggle" type="button" data-target="confirmPassword" aria-label="Show password">Show</button>
             </div>
+            <div class="field-message" id="confirmPasswordMsg"></div>
           </div>
 
           <button id="btnReg" type="button" class="auth-submit">Register</button>
@@ -64,6 +68,24 @@
 
   <script src="auth.js"></script>
   <script>
+    const msg = document.getElementById("msg");
+    const nameMsg = document.getElementById("nameMsg");
+    const emailMsg = document.getElementById("emailMsg");
+    const passwordMsg = document.getElementById("passwordMsg");
+    const confirmPasswordMsg = document.getElementById("confirmPasswordMsg");
+
+    function clearFieldMessages() {
+      [nameMsg, emailMsg, passwordMsg, confirmPasswordMsg].forEach((element) => {
+        element.textContent = "";
+        element.className = "field-message";
+      });
+    }
+
+    function setFieldMessage(element, text, type = "error") {
+      element.textContent = text;
+      element.className = `field-message ${type}`;
+    }
+
     document.querySelectorAll(".password-toggle").forEach((button) => {
       button.addEventListener("click", () => {
         const input = document.getElementById(button.dataset.target);
@@ -74,7 +96,7 @@
     });
 
     document.getElementById("btnReg").addEventListener("click", async () => {
-      const msg = document.getElementById("msg");
+      clearFieldMessages();
       msg.textContent = "Creating account...";
 
       try {
@@ -83,15 +105,44 @@
         const password = document.getElementById("password").value;
         const confirmPassword = document.getElementById("confirmPassword").value;
 
+        if (!name) {
+          setFieldMessage(nameMsg, "Please enter your username.");
+          msg.textContent = "";
+          return;
+        }
+
+        if (!email) {
+          setFieldMessage(emailMsg, "Please enter your email.");
+          msg.textContent = "";
+          return;
+        }
+
+        if (!password) {
+          setFieldMessage(passwordMsg, "Please enter your password.");
+          msg.textContent = "";
+          return;
+        }
+
+        if (!confirmPassword) {
+          setFieldMessage(confirmPasswordMsg, "Please confirm your password.");
+          msg.textContent = "";
+          return;
+        }
+
         if (password !== confirmPassword) {
-          msg.textContent = "Passwords do not match.";
+          setFieldMessage(confirmPasswordMsg, "Passwords do not match.");
+          msg.textContent = "";
           return;
         }
 
         const strongPassword = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9]).{8,}$/;
 
         if (!strongPassword.test(password)) {
-          msg.textContent = "Password must be at least 8 characters and include 1 uppercase, 1 lowercase, and 1 special character.";
+          setFieldMessage(
+            passwordMsg,
+            "Password must be at least 8 characters and include 1 uppercase, 1 lowercase, and 1 special character."
+          );
+          msg.textContent = "";
           return;
         }
 
@@ -107,6 +158,18 @@
           window.location.href = "verify.html";
         }, 1000);
       } catch (e) {
+        if (/email/i.test(e.message)) {
+          setFieldMessage(emailMsg, e.message);
+          msg.textContent = "";
+          return;
+        }
+
+        if (/password/i.test(e.message)) {
+          setFieldMessage(passwordMsg, e.message);
+          msg.textContent = "";
+          return;
+        }
+
         msg.textContent = e.message;
       }
     });
