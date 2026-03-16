@@ -152,7 +152,7 @@
           body: JSON.stringify({ name, email, password })
         });
 
-        localStorage.setItem("verifyEmail", email);
+        localStorage.setItem("verifyEmail", email.toLowerCase());
         msg.textContent = data.message || "Verification code sent.";
         setTimeout(() => {
           window.location.href = "verify.html";
