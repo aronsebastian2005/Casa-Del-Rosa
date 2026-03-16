@@ -1345,7 +1345,8 @@ th{
   }
 
   .auth-scene{
-    padding:16px;
+    place-items:start center;
+    padding:28px 16px 16px;
   }
 
   .auth-panel{
@@ -1361,7 +1362,7 @@ th{
 
   .auth-logo{
     gap:12px;
-    margin-bottom:24px;
+    margin:0 auto 20px;
   }
 
   .auth-logo-mark{
@@ -1378,8 +1379,8 @@ th{
   }
 
   .auth-title{
-    font-size:2.9rem;
-    margin-bottom:16px;
+    font-size:2.5rem;
+    margin-bottom:14px;
   }
 
   .auth-form input,
@@ -1416,6 +1417,32 @@ th{
 }
 
 @media (max-width:480px){
+  .auth-scene{
+    padding-top:34px;
+  }
+
+  .auth-panel{
+    padding:20px 16px 24px;
+  }
+
+  .auth-logo{
+    gap:10px;
+    margin-bottom:16px;
+  }
+
+  .auth-logo-mark{
+    width:56px;
+    height:90px;
+  }
+
+  .auth-logo-text{
+    font-size:2rem;
+  }
+
+  .auth-title{
+    font-size:2.15rem;
+  }
+
   .landing-nav{
     padding:10px 10px 12px;
   }
