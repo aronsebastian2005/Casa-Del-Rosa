@@ -1,8 +1,3 @@
-const API =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
-    : "https://casa-del-rosa.onrender.com";
-
 const msg = document.getElementById("msg");
 const usernameMsg = document.getElementById("usernameMsg");
 const passwordMsg = document.getElementById("passwordMsg");
@@ -20,7 +15,7 @@ function setFieldMessage(element, text) {
   element.className = "admin-field-message error";
 }
 
-async function attemptLogin() {
+function attemptLogin() {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
 
@@ -39,43 +34,17 @@ async function attemptLogin() {
     return;
   }
 
-  try {
-    const res = await fetch(`${API}/api/admin/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      throw new Error(data && data.message ? data.message : `Admin login failed (${res.status})`);
-    }
-
-    localStorage.setItem("adminToken", data.token);
-    localStorage.setItem("adminUsername", data.admin && data.admin.username ? data.admin.username : username);
+  if (username === "admin" && password === "admin123") {
+    localStorage.setItem("adminLoggedIn", "true");
     loadingScreen.style.display = "flex";
 
     setTimeout(() => {
       window.location.href = "index.html";
     }, 1000);
-  } catch (error) {
-    if (/username/i.test(error.message)) {
-      setFieldMessage(usernameMsg, error.message);
-      msg.textContent = "";
-      return;
-    }
-
-    if (/password/i.test(error.message)) {
-      setFieldMessage(passwordMsg, error.message);
-      msg.textContent = "";
-      return;
-    }
-
-    msg.textContent = error.message;
+    return;
   }
+
+  msg.textContent = "Invalid admin username or password.";
 }
 
 document.getElementById("loginBtn").addEventListener("click", attemptLogin);

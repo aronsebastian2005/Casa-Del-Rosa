@@ -72,40 +72,6 @@
         </table>
       </div>
     </section>
-
-    <section class="admin-card">
-      <div class="section-head">
-        <div>
-          <p class="section-label">Admin Settings</p>
-          <h2>Manager Protected</h2>
-        </div>
-        <div id="settingsMsg" class="msg"></div>
-      </div>
-
-      <form id="adminSettingsForm" class="admin-settings-grid" onsubmit="return false;">
-        <div class="admin-field">
-          <label for="adminUsername">Admin Username</label>
-          <input id="adminUsername" type="text" placeholder="Enter admin username">
-        </div>
-
-        <div class="admin-field">
-          <label for="adminEmail">Admin Email</label>
-          <input id="adminEmail" type="email" placeholder="Enter admin email">
-        </div>
-
-        <div class="admin-field">
-          <label for="adminPassword">New Admin Password</label>
-          <input id="adminPassword" type="password" placeholder="Leave blank to keep current password">
-        </div>
-
-        <div class="admin-field">
-          <label for="managerSecret">Manager Secret</label>
-          <input id="managerSecret" type="password" placeholder="Enter manager secret to confirm changes">
-        </div>
-
-        <button id="saveSettingsBtn" type="button" class="solid-btn">Save Admin Credentials</button>
-      </form>
-    </section>
   </div>
 
   <script src="admin.js"></script>

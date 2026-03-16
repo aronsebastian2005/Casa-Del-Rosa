@@ -5,7 +5,6 @@ const totalCount = document.getElementById("totalCount");
 const pendingCount = document.getElementById("pendingCount");
 const approvedCount = document.getElementById("approvedCount");
 const rejectedCount = document.getElementById("rejectedCount");
-const settingsMsg = document.getElementById("settingsMsg");
 let hasLoadedOnce = false;
 let lastBookingsSnapshot = "";
 let isRefreshing = false;
@@ -46,24 +45,12 @@ function restoreScrollPosition(scrollY) {
   });
 }
 
-function getAdminToken() {
-  return localStorage.getItem("adminToken");
-}
-
-function logoutAdmin() {
-  localStorage.removeItem("adminToken");
-  localStorage.removeItem("adminUsername");
-  window.location.href = "login.html";
-}
-
 async function loadBookings(options = {}) {
   if (!rows || !msg) return;
   if (isRefreshing) return;
 
-  const adminToken = getAdminToken();
-
-  if (!adminToken) {
-    logoutAdmin();
+  if (localStorage.getItem("adminLoggedIn") !== "true") {
+    window.location.href = "login.html";
     return;
   }
 
@@ -75,11 +62,7 @@ async function loadBookings(options = {}) {
 
   try {
     isRefreshing = true;
-    const res = await fetch(`${API}/api/bookings`, {
-      headers: {
-        Authorization: `Bearer ${adminToken}`
-      }
-    });
+    const res = await fetch(`${API}/api/bookings`);
     const text = await res.text();
 
     let data;
@@ -158,93 +141,9 @@ async function loadBookings(options = {}) {
     restoreScrollPosition(scrollY);
   } catch (err) {
     console.log(err);
-    if (/token/i.test(err.message) || /access/i.test(err.message)) {
-      logoutAdmin();
-      return;
-    }
     msg.textContent = err.message;
   } finally {
     isRefreshing = false;
-  }
-}
-
-async function loadAdminSettings() {
-  const adminToken = getAdminToken();
-  if (!adminToken) {
-    logoutAdmin();
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API}/api/admin/settings`, {
-      headers: {
-        Authorization: `Bearer ${adminToken}`
-      }
-    });
-
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      throw new Error(data && data.message ? data.message : `Settings load failed (${res.status})`);
-    }
-
-    const usernameInput = document.getElementById("adminUsername");
-    const emailInput = document.getElementById("adminEmail");
-
-    if (usernameInput) usernameInput.value = data.username || "";
-    if (emailInput) emailInput.value = data.email || "";
-  } catch (error) {
-    console.log(error);
-    if (/token/i.test(error.message) || /access/i.test(error.message)) {
-      logoutAdmin();
-      return;
-    }
-
-    if (settingsMsg) {
-      settingsMsg.textContent = error.message;
-    }
-  }
-}
-
-async function saveAdminSettings() {
-  if (!settingsMsg) return;
-
-  const username = document.getElementById("adminUsername").value.trim();
-  const email = document.getElementById("adminEmail").value.trim();
-  const newPassword = document.getElementById("adminPassword").value;
-  const managerSecret = document.getElementById("managerSecret").value.trim();
-
-  settingsMsg.textContent = "Saving admin settings...";
-
-  try {
-    const adminToken = getAdminToken();
-    const res = await fetch(`${API}/api/admin/settings`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`
-      },
-      body: JSON.stringify({ username, email, newPassword, managerSecret })
-    });
-
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      throw new Error(data && data.message ? data.message : `Settings update failed (${res.status})`);
-    }
-
-    settingsMsg.textContent = data.message || "Admin credentials updated successfully.";
-    document.getElementById("adminPassword").value = "";
-    document.getElementById("managerSecret").value = "";
-    await loadAdminSettings();
-  } catch (error) {
-    console.log(error);
-    if (/token/i.test(error.message) || /access/i.test(error.message)) {
-      logoutAdmin();
-      return;
-    }
-
-    settingsMsg.textContent = error.message;
   }
 }
 
@@ -253,12 +152,8 @@ async function approve(id) {
   msg.textContent = "Approving...";
 
   try {
-    const adminToken = getAdminToken();
     const res = await fetch(`${API}/api/approve/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${adminToken}`
-      }
+      method: "PUT"
     });
 
     const text = await res.text();
@@ -278,10 +173,6 @@ async function approve(id) {
     await loadBookings();
   } catch (err) {
     console.log(err);
-    if (/token/i.test(err.message) || /access/i.test(err.message)) {
-      logoutAdmin();
-      return;
-    }
     msg.textContent = err.message;
   }
 }
@@ -291,12 +182,8 @@ async function reject(id) {
   msg.textContent = "Rejecting...";
 
   try {
-    const adminToken = getAdminToken();
     const res = await fetch(`${API}/api/reject/${id}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${adminToken}`
-      }
+      method: "PUT"
     });
 
     const text = await res.text();
@@ -316,10 +203,6 @@ async function reject(id) {
     await loadBookings();
   } catch (err) {
     console.log(err);
-    if (/token/i.test(err.message) || /access/i.test(err.message)) {
-      logoutAdmin();
-      return;
-    }
     msg.textContent = err.message;
   }
 }
@@ -334,17 +217,12 @@ if (rows) {
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
-    logoutAdmin();
+    localStorage.removeItem("adminLoggedIn");
+    window.location.href = "login.html";
   });
 }
 
-const saveSettingsBtn = document.getElementById("saveSettingsBtn");
-if (saveSettingsBtn) {
-  saveSettingsBtn.addEventListener("click", saveAdminSettings);
-}
-
 loadBookings();
-loadAdminSettings();
 setInterval(() => {
   loadBookings({ silent: true });
 }, 5000);
