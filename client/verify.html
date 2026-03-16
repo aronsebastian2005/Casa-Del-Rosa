@@ -70,12 +70,21 @@
       element.className = `field-message ${type}`;
     }
 
+    function isValidEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+    }
+
     const savedEmail = localStorage.getItem("verifyEmail");
-    if (savedEmail) {
+    if (savedEmail && isValidEmail(savedEmail)) {
       emailInput.value = savedEmail;
       emailInput.readOnly = true;
       emailHint.textContent = "Using the email from your registration.";
       emailHint.className = "field-message success";
+    } else if (savedEmail) {
+      localStorage.removeItem("verifyEmail");
+      emailInput.readOnly = false;
+      emailHint.textContent = "Please enter the email you used when registering.";
+      emailHint.className = "field-message";
     }
 
     document.getElementById("btnVerify").addEventListener("click", async () => {
