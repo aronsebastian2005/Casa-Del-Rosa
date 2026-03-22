@@ -149,7 +149,7 @@ const upload = multer({
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed"));
+      cb(new Error("Only PNG, JPG, or WEBP screenshot images are allowed."));
     }
   },
   limits: {
@@ -548,14 +548,16 @@ app.post("/api/auth/login", async (req, res) => {
 // ---------- BOOKINGS ----------
 app.post("/api/book", auth, async (req, res) => {
   try {
-    const body = req.body || {};
+  const body = req.body || {};
 
-    const name = String(body.name || req.user.name || "").trim();
-    const email = String(body.email || req.user.email || "").trim().toLowerCase();
-    const contact = String(body.contact || "").trim();
-    const guests = Number(body.guests);
-    const checkin = normalizeDateOnly(body.checkin);
-    const checkout = normalizeDateOnly(body.checkout);
+  const name = String(body.name || req.user.name || "").trim();
+  const email = String(body.email || req.user.email || "").trim().toLowerCase();
+  const contact = String(body.contact || "").trim();
+  const guests = Number(body.guests);
+  const eventType = String(body.eventType || "").trim();
+  const specialRequests = String(body.specialRequests || "").trim();
+  const checkin = normalizeDateOnly(body.checkin);
+  const checkout = normalizeDateOnly(body.checkout);
 
     if (!name || !email || !contact || !guests || !checkin || !checkout) {
       return sendJsonError(res, 400, "Please complete all booking fields");
@@ -593,6 +595,8 @@ app.post("/api/book", auth, async (req, res) => {
       email,
       contact,
       guests,
+      eventType,
+      specialRequests,
       checkin,
       checkout,
       total,
@@ -708,40 +712,50 @@ app.get("/api/approved-dates", async (req, res) => {
   }
 });
 
-app.put("/api/upload-proof/:id", auth, upload.single("proof"), async (req, res) => {
-  try {
-    const booking = await Booking.findById(req.params.id);
+app.put("/api/upload-proof/:id", auth, (req, res) => {
+  upload.single("proof")(req, res, async (uploadErr) => {
+    if (uploadErr) {
+      if (uploadErr instanceof multer.MulterError && uploadErr.code === "LIMIT_FILE_SIZE") {
+        return sendJsonError(res, 400, "Screenshot image must be 5MB or smaller");
+      }
 
-    if (!booking) {
-      return sendJsonError(res, 404, "Booking not found");
+      return sendJsonError(res, 400, uploadErr.message || "Upload failed");
     }
 
-    if (String(booking.userId) !== String(req.user.id)) {
-      return sendJsonError(res, 403, "Not allowed");
+    try {
+      const booking = await Booking.findById(req.params.id);
+
+      if (!booking) {
+        return sendJsonError(res, 404, "Booking not found");
+      }
+
+      if (String(booking.userId) !== String(req.user.id)) {
+        return sendJsonError(res, 403, "Not allowed");
+      }
+
+      if (booking.status !== "Approved") {
+        return sendJsonError(res, 400, "You can upload proof only after approval");
+      }
+
+      if (!req.file) {
+        return sendJsonError(res, 400, "Please select a screenshot image");
+      }
+
+      const paymentMethod = String(req.body.paymentMethod || "").trim();
+      if (!paymentMethod || !["GCash", "PayMaya"].includes(paymentMethod)) {
+        return sendJsonError(res, 400, "Please select GCash or PayMaya");
+      }
+
+      booking.proof = req.file.filename;
+      booking.paymentMethod = paymentMethod;
+      await booking.save();
+
+      return res.json({ message: "Payment proof uploaded" });
+    } catch (err) {
+      console.log("UPLOAD ERROR:", err);
+      return sendJsonError(res, 500, "Upload failed", err);
     }
-
-    if (booking.status !== "Approved") {
-      return sendJsonError(res, 400, "You can upload proof only after approval");
-    }
-
-    if (!req.file) {
-      return sendJsonError(res, 400, "Please select a screenshot image");
-    }
-
-    const paymentMethod = String(req.body.paymentMethod || "").trim();
-    if (!paymentMethod || !["GCash", "PayMaya"].includes(paymentMethod)) {
-      return sendJsonError(res, 400, "Please select GCash or PayMaya");
-    }
-
-    booking.proof = req.file.filename;
-    booking.paymentMethod = paymentMethod;
-    await booking.save();
-
-    return res.json({ message: "Payment proof uploaded" });
-  } catch (err) {
-    console.log("UPLOAD ERROR:", err);
-    return sendJsonError(res, 500, "Upload failed", err);
-  }
+  });
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

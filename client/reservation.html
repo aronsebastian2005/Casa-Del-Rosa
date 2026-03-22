@@ -6,127 +6,184 @@
   <title>Casa Del Rosa | Reservation</title>
   <link rel="stylesheet" href="client.css"/>
 </head>
-<body>
-  <div class="wrap">
-    <div class="topbar">
+<body class="reservation-page">
+  <div class="reservation-shell">
+    <header class="reservation-topbar">
       <div>
-        <div class="brand">Reservation</div>
-        <div class="sub">Pick available dates and submit your reservation request.</div>
+        <p class="reservation-kicker">Casa Del Rosa</p>
+        <h1>Reservation Form</h1>
+        <p class="reservation-intro">Choose your dates, check the live calendar, and send a polished reservation request without leaving the page.</p>
       </div>
-      <div class="row" style="max-width:360px">
-        <button class="secondary" onclick="window.location.href='home.html'">Back Home</button>
-        <button onclick="logout()">Logout</button>
+      <div class="reservation-top-actions">
+        <button class="secondary" type="button" onclick="window.location.href='home.html'">Back Home</button>
+        <button type="button" onclick="logout()">Logout</button>
       </div>
-    </div>
+    </header>
 
-    <div class="card" id="calendar">
-      <div class="calhead">
-        <h3 style="margin:0">Availability Calendar</h3>
-        <div class="row" style="max-width:320px">
+    <section class="reservation-calendar-card" id="calendar">
+      <div class="reservation-calendar-head">
+        <div>
+          <div class="section-pill">Availability Calendar</div>
+          <h2>See reserved days before you book</h2>
+          <p>Red dates are already reserved from approved bookings only.</p>
+        </div>
+        <div class="reservation-calendar-actions">
           <button class="secondary" id="prevBtn" type="button">Prev</button>
           <button class="secondary" id="nextBtn" type="button">Next</button>
         </div>
       </div>
-      <div class="small">Red days are already reserved (Approved bookings only).</div>
       <div class="msg" id="calTitle"></div>
-      <div class="calendar" id="cal"></div>
-    </div>
+      <div class="calendar reservation-calendar-grid" id="cal"></div>
+    </section>
 
-    <div class="card">
-      <h2>Reservation Form</h2>
-
-      <form id="bookingForm">
-        <div class="grid two">
-          <div>
-            <label>Full Name</label>
-            <input name="name" id="name" required />
-          </div>
-          <div>
-            <label>Email</label>
-            <input name="email" id="email" type="email" required />
-          </div>
+    <div class="reservation-layout">
+      <section class="reservation-form-card">
+        <div class="reservation-form-head">
+          <div class="section-pill">Reservation Form</div>
         </div>
 
-        <div class="grid two">
-          <div>
-            <label>Contact Number</label>
-            <input name="contact" required />
+        <form id="bookingForm" class="reservation-form-grid">
+          <div class="reservation-field reservation-field-full">
+            <label for="name">Full Name</label>
+            <input name="name" id="name" placeholder="Your full name" required />
           </div>
-          <div>
-            <label>Guests</label>
-            <input name="guests" id="guests" type="number" min="1" required />
-          </div>
-        </div>
 
-        <div class="grid two">
-          <div>
-            <label>Check-in Date</label>
+          <div class="reservation-field">
+            <label for="email">Email Address</label>
+            <input name="email" id="email" type="email" placeholder="your@email.com" required />
+          </div>
+
+          <div class="reservation-field">
+            <label for="contact">Contact Number</label>
+            <input name="contact" id="contact" placeholder="09XX-XXX-XXXX" required />
+          </div>
+
+          <div class="reservation-field">
+            <label for="checkin">Check-in Date</label>
             <input name="checkin" id="checkin" type="date" required />
           </div>
-          <div>
-            <label>Check-out Date</label>
+
+          <div class="reservation-field">
+            <label for="checkout">Check-out Date</label>
             <input name="checkout" id="checkout" type="date" required />
           </div>
-        </div>
 
-        <div class="card" style="margin-top:14px">
-          <h3>Price Details</h3>
-          <div class="small">Weekday: ₱12,000 (up to 120 guests)</div>
-          <div class="small">Weekend: ₱15,000 (up to 120 guests)</div>
-          <div class="small">Extra guest above 120: ₱100 per person</div>
-          <div class="msg" id="priceMsg"></div>
-          <h2 id="totalDisplay">₱0</h2>
-          <input type="hidden" name="total" id="totalInput" value="0">
-        </div>
-
-        <button style="margin-top:12px" type="submit">Submit Reservation Request</button>
-        <div class="msg" id="msg"></div>
-      </form>
-    </div>
-
-    <div class="card">
-      <h3>Resort Info</h3>
-
-      <div class="grid two">
-        <div>
-          <div class="badge">Location</div>
-          <div style="margin-top:8px">
-            <b>Casa Del Rosa Private Resort</b><br/>
-            <span class="small">(Apalit Pampanga)</span>
+          <div class="reservation-field">
+            <label for="guests">Number of Guests</label>
+            <input name="guests" id="guests" type="number" min="1" placeholder="e.g. 50" required />
           </div>
 
-          <div style="margin-top:14px" class="badge">Contact</div>
-          <div style="margin-top:8px">
-            <span class="small">Phone:</span> <b>0985-475-7688</b><br/>
-            <span class="small">Email:</span> <b>casadelrosa@email.com</b>
+          <div class="reservation-field">
+            <label for="eventType">Event Type</label>
+            <select name="eventType" id="eventType">
+              <option value="">Select event type</option>
+              <option value="Family Gathering">Family Gathering</option>
+              <option value="Barkada Weekend">Barkada Weekend</option>
+              <option value="Birthday Celebration">Birthday Celebration</option>
+              <option value="Company Outing">Company Outing</option>
+              <option value="Wedding / Reception">Wedding / Reception</option>
+              <option value="Other">Other</option>
+            </select>
           </div>
-        </div>
 
-        <div>
-          <div class="badge">Check-in / Check-out</div>
-          <div style="margin-top:8px">
-            <span class="small">Check-in:</span> <b>2:00 PM</b><br/>
-            <span class="small">Check-out:</span> <b>12:00 NN</b>
+          <div class="reservation-field reservation-field-full">
+            <label for="specialRequests">Special Requests (Optional)</label>
+            <textarea name="specialRequests" id="specialRequests" rows="4" placeholder="Any special requests or notes..."></textarea>
           </div>
 
-          <div style="margin-top:14px" class="badge">House Rules</div>
-          <ul style="margin:8px 0 0;padding-left:18px;line-height:1.8" class="small">
-            <li>No illegal drugs / prohibited items</li>
+          <div class="reservation-estimate-card reservation-field-full">
+            <div class="section-pill section-pill-soft">Price Estimate</div>
+            <div class="reservation-estimate-lines">
+              <div class="reservation-estimate-line">
+                <span id="baseBreakdown">Select dates to see the rate breakdown</span>
+                <strong id="baseAmount">P0</strong>
+              </div>
+              <div class="reservation-estimate-line">
+                <span id="extraBreakdown">Extra guests will appear here if you go above 120.</span>
+                <strong id="extraAmount">P0</strong>
+              </div>
+            </div>
+            <div class="reservation-total-row">
+              <span>Estimated Total</span>
+              <strong id="totalDisplay">P0</strong>
+            </div>
+            <input type="hidden" name="total" id="totalInput" value="0">
+            <div class="msg" id="priceMsg"></div>
+          </div>
+
+          <div class="reservation-field reservation-field-full">
+            <button class="reservation-submit" type="submit">Submit Reservation Request</button>
+            <p class="reservation-note">No payment required until your reservation is approved.</p>
+            <div class="msg" id="msg"></div>
+          </div>
+        </form>
+      </section>
+
+      <aside class="reservation-side">
+        <section class="reservation-side-card">
+          <div class="section-pill">Pricing</div>
+          <div class="pricing-stack">
+            <div class="pricing-item">
+              <div>
+                <h3>Weekday Rate</h3>
+                <p>Mon - Thu · Up to 120 guests</p>
+              </div>
+              <strong>P12,000</strong>
+            </div>
+
+            <div class="pricing-item">
+              <div>
+                <h3>Weekend Rate</h3>
+                <p>Fri - Sun · Up to 120 guests</p>
+              </div>
+              <strong>P15,000</strong>
+            </div>
+
+            <div class="pricing-item">
+              <div>
+                <h3>Extra Guest</h3>
+                <p>Above 120 · Per person</p>
+              </div>
+              <strong>P100</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="reservation-side-card">
+          <div class="section-pill">Resort Info</div>
+          <div class="reservation-info-list">
+            <div><span>Location</span><strong>Apalit, Pampanga</strong></div>
+            <div><span>Check-in</span><strong>2:00 PM</strong></div>
+            <div><span>Check-out</span><strong>12:00 NN</strong></div>
+            <div><span>Capacity</span><strong>Up to 120 guests</strong></div>
+            <div><span>Phone</span><strong>0985-475-7688</strong></div>
+            <div><span>Email</span><strong>casadelrosa@email.com</strong></div>
+          </div>
+        </section>
+
+        <section class="reservation-side-card reservation-rules-card">
+          <div class="section-pill section-pill-dark">House Rules</div>
+          <ul class="reservation-rules-list">
+            <li>No illegal drugs or prohibited items</li>
             <li>Keep the place clean (extra fee for heavy mess)</li>
             <li>Respect quiet hours at night</li>
-            <li>Damage/lost items will be charged</li>
+            <li>Damage or lost items will be charged</li>
+            <li>Reservation is Pending until Admin approves</li>
+            <li>Payment only after reservation is Approved</li>
           </ul>
-        </div>
-      </div>
-
-      <hr/>
-
-      <div class="small">
-        <b>Important:</b> Reservation will first be marked <b>Pending</b>.  
-        Admin will review it.  
-        You can only upload payment proof after it becomes <b>Approved</b>.
-      </div>
+        </section>
+      </aside>
     </div>
+
+    <section class="reservation-success-card" id="successCard" hidden>
+      <div class="reservation-success-icon">✓</div>
+      <h2>Request Received!</h2>
+      <p id="successText">Your reservation request has been submitted.</p>
+      <div class="reservation-success-contact">
+        <span>For urgent inquiries, call us at <strong>0985-475-7688</strong> or email <strong>casadelrosa@email.com</strong>.</span>
+      </div>
+      <button type="button" onclick="window.location.href='home.html'">Return to Casa Del Rosa</button>
+    </section>
   </div>
 
   <script src="auth.js"></script>

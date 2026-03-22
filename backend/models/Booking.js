@@ -9,6 +9,8 @@ const BookingSchema = new mongoose.Schema(
     contact: { type: String, required: true, trim: true },
 
     guests: { type: Number, required: true, min: 1 },
+    eventType: { type: String, default: "", trim: true },
+    specialRequests: { type: String, default: "", trim: true },
 
     checkin: { type: String, required: true },   // YYYY-MM-DD
     checkout: { type: String, required: true },  // YYYY-MM-DD

@@ -11,6 +11,10 @@ function normalizeDateOnly(value) {
   return str ? str.slice(0, 10) : "";
 }
 
+function formatPeso(amount) {
+  return `P${Number(amount || 0).toLocaleString()}`;
+}
+
 function parseDateParts(dateStr) {
   const normalized = normalizeDateOnly(dateStr);
   const [year, month, day] = normalized.split("-").map(Number);
@@ -53,6 +57,25 @@ function rangeHasBlockedDates(checkin, checkout) {
   return false;
 }
 
+function getStoredUser() {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const payload = token.split(".")[1];
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(normalized)
+        .split("")
+        .map((char) => `%${(`00${char.charCodeAt(0).toString(16)}`).slice(-2)}`)
+        .join("")
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 async function loadBlocked() {
   const dates = await apiFetch("/api/approved-dates");
   blocked = new Set((dates || []).map(normalizeDateOnly));
@@ -88,11 +111,11 @@ function renderCalendar() {
   for (let d = 1; d <= last.getDate(); d++) {
     const dt = new Date(year, month, d);
     const key = ymd(dt);
-    const isBlocked = blocked.has(key);
+    const blockedDay = blocked.has(key);
 
     const el = document.createElement("div");
-    el.className = "day" + (isBlocked ? " blocked" : "");
-    el.innerHTML = `<div class="d">${d}</div><div class="t">${isBlocked ? "Reserved" : "Available"}</div>`;
+    el.className = "day" + (blockedDay ? " blocked" : "");
+    el.innerHTML = `<div class="d">${d}</div><div class="t">${blockedDay ? "Reserved" : "Available"}</div>`;
     cal.appendChild(el);
   }
 }
@@ -105,54 +128,124 @@ function calculateTotal() {
   const totalDisplay = document.getElementById("totalDisplay");
   const totalInput = document.getElementById("totalInput");
   const priceMsg = document.getElementById("priceMsg");
+  const baseBreakdown = document.getElementById("baseBreakdown");
+  const baseAmount = document.getElementById("baseAmount");
+  const extraBreakdown = document.getElementById("extraBreakdown");
+  const extraAmount = document.getElementById("extraAmount");
 
   if (!checkin || !checkout || !guests) {
-    totalDisplay.textContent = "₱0";
+    totalDisplay.textContent = "P0";
     totalInput.value = "0";
+    baseBreakdown.textContent = "Select dates to see the rate breakdown";
+    baseAmount.textContent = "P0";
+    extraBreakdown.textContent = "Extra guests will appear here if you go above 120.";
+    extraAmount.textContent = "P0";
     priceMsg.textContent = "";
     return 0;
   }
 
   if (toDayNumber(checkout) <= toDayNumber(checkin)) {
-    totalDisplay.textContent = "₱0";
+    totalDisplay.textContent = "P0";
     totalInput.value = "0";
+    baseBreakdown.textContent = "Checkout must be after check-in.";
+    baseAmount.textContent = "P0";
+    extraBreakdown.textContent = "Please adjust your dates first.";
+    extraAmount.textContent = "P0";
     priceMsg.textContent = "Checkout must be after check-in.";
     return 0;
   }
 
   if (rangeHasBlockedDates(checkin, checkout)) {
-    totalDisplay.textContent = "₱0";
+    totalDisplay.textContent = "P0";
     totalInput.value = "0";
+    baseBreakdown.textContent = "Selected dates include reserved dates.";
+    baseAmount.textContent = "P0";
+    extraBreakdown.textContent = "Please choose another date range.";
+    extraAmount.textContent = "P0";
     priceMsg.textContent = "Selected dates include reserved dates.";
     return 0;
   }
 
-  const nights = toDayNumber(checkout) - toDayNumber(checkin);
+  const start = toDayNumber(checkin);
+  const end = toDayNumber(checkout);
+  const nights = end - start;
   let baseTotal = 0;
+  let weekdayNights = 0;
+  let weekendNights = 0;
 
   for (let i = 0; i < nights; i++) {
-    const dateStr = fromDayNumber(toDayNumber(checkin) + i);
-    baseTotal += isWeekend(dateStr) ? WEEKEND_RATE : WEEKDAY_RATE;
+    const dateStr = fromDayNumber(start + i);
+    if (isWeekend(dateStr)) {
+      weekendNights += 1;
+      baseTotal += WEEKEND_RATE;
+    } else {
+      weekdayNights += 1;
+      baseTotal += WEEKDAY_RATE;
+    }
   }
 
   const extraGuests = guests > MAX_GUESTS_INCLUDED ? guests - MAX_GUESTS_INCLUDED : 0;
   const extraFee = extraGuests * EXTRA_GUEST_PRICE;
   const finalTotal = baseTotal + extraFee;
 
-  totalDisplay.textContent = "₱" + finalTotal.toLocaleString();
-  totalInput.value = String(finalTotal);
+  const nightLabel = nights === 1 ? "night" : "nights";
+  const stayParts = [];
+  if (weekdayNights) stayParts.push(`${weekdayNights} weekday`);
+  if (weekendNights) stayParts.push(`${weekendNights} weekend`);
 
-  priceMsg.textContent = extraGuests > 0
-    ? `Extra guest charge: ₱${extraFee.toLocaleString()} for ${extraGuests} guest(s).`
-    : `Included guests: up to ${MAX_GUESTS_INCLUDED}.`;
+  totalDisplay.textContent = formatPeso(finalTotal);
+  totalInput.value = String(finalTotal);
+  baseBreakdown.textContent = `${nights} ${nightLabel} • ${stayParts.join(" + ")}`;
+  baseAmount.textContent = formatPeso(baseTotal);
+
+  if (extraGuests > 0) {
+    extraBreakdown.textContent = `Extra guests above ${MAX_GUESTS_INCLUDED}: ${extraGuests} × ${formatPeso(EXTRA_GUEST_PRICE)}`;
+    extraAmount.textContent = formatPeso(extraFee);
+    priceMsg.textContent = `Base stay plus ${extraGuests} extra guest(s).`;
+  } else {
+    extraBreakdown.textContent = `No extra guest charge. Up to ${MAX_GUESTS_INCLUDED} guests included.`;
+    extraAmount.textContent = "P0";
+    priceMsg.textContent = "Included guests: up to 120.";
+  }
 
   return finalTotal;
+}
+
+function showSuccessState(payload) {
+  const successCard = document.getElementById("successCard");
+  const successText = document.getElementById("successText");
+  const formCard = document.querySelector(".reservation-form-card");
+  const side = document.querySelector(".reservation-side");
+
+  if (!successCard || !successText || !formCard || !side) {
+    return;
+  }
+
+  successText.textContent = `Thank you, ${payload.name}. Your reservation request has been submitted. Our team will confirm your booking within 24 hours at ${payload.email}. Payment is only required after approval.`;
+  formCard.hidden = true;
+  side.hidden = true;
+  successCard.hidden = false;
+  successCard.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 (async function () {
   if (!getToken()) {
     window.location.href = "login.html";
     return;
+  }
+
+  const storedUser = getStoredUser();
+  if (storedUser) {
+    const nameInput = document.getElementById("name");
+    const emailInput = document.getElementById("email");
+
+    if (storedUser.name) {
+      nameInput.value = storedUser.name;
+    }
+
+    if (storedUser.email) {
+      emailInput.value = storedUser.email;
+    }
   }
 
   document.getElementById("prevBtn").onclick = () => {
@@ -181,7 +274,7 @@ function calculateTotal() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    msg.textContent = "Submitting...";
+    msg.textContent = "Submitting your reservation request...";
 
     const total = calculateTotal();
     if (!total) {
@@ -195,6 +288,8 @@ function calculateTotal() {
         email: form.email.value.trim(),
         contact: form.contact.value.trim(),
         guests: Number(form.guests.value),
+        eventType: form.eventType.value.trim(),
+        specialRequests: form.specialRequests.value.trim(),
         checkin: normalizeDateOnly(form.checkin.value),
         checkout: normalizeDateOnly(form.checkout.value),
         total
@@ -208,13 +303,10 @@ function calculateTotal() {
         body: JSON.stringify(payload)
       });
 
-      msg.textContent = "✅ Reservation request submitted. Wait for admin approval.";
+      msg.textContent = "";
+      showSuccessState(payload);
       form.reset();
-      document.getElementById("totalDisplay").textContent = "₱0";
-      document.getElementById("totalInput").value = "0";
-      document.getElementById("priceMsg").textContent = "";
-
-      setTimeout(() => window.location.href = "home.html", 1000);
+      calculateTotal();
     } catch (err) {
       msg.textContent = err.message;
     }
