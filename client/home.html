@@ -237,18 +237,21 @@
             <img src="assets/paymaya.jpg" alt="PayMaya QR" style="max-width:280px; border-radius:16px;">
           </div>
 
-          <form id="paymentForm" enctype="multipart/form-data" style="margin-top:14px;">
-            <label>Upload Screenshot of GCash or PayMaya Payment</label>
-            <input
-              type="file"
-              id="paymentProof"
-              name="proof"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              required
-            >
-            <button type="submit" style="margin-top:10px;">Submit Payment Proof</button>
-            <div class="msg" id="paymentMsg"></div>
-          </form>
+            <form id="paymentForm" enctype="multipart/form-data" style="margin-top:14px;">
+              <label>Upload Screenshot of GCash or PayMaya Payment</label>
+              <input
+                type="file"
+                id="paymentProof"
+                name="proof"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                required
+              >
+              <div class="small" style="margin-top:8px;">
+                Only PNG, JPG, or WEBP screenshot images up to 5MB are allowed.
+              </div>
+              <button type="submit" style="margin-top:10px;">Submit Payment Proof</button>
+              <div class="msg" id="paymentMsg"></div>
+            </form>
         </div>
       </div>
 

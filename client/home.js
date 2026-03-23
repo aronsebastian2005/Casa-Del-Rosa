@@ -3,6 +3,25 @@ function normalizeDateOnly(value) {
   return str ? str.slice(0, 10) : "";
 }
 
+const PROOF_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+const PROOF_MAX_SIZE = 5 * 1024 * 1024;
+
+function validatePaymentProof(file) {
+  if (!file) {
+    return "Please upload a screenshot image.";
+  }
+
+  if (!PROOF_ALLOWED_TYPES.includes(file.type)) {
+    return "Only PNG, JPG, or WEBP screenshot images are allowed.";
+  }
+
+  if (file.size > PROOF_MAX_SIZE) {
+    return "Screenshot image must be 5MB or smaller.";
+  }
+
+  return "";
+}
+
 function setupAdminMenu() {
   const menu = document.querySelector(".landing-menu");
   const toggleBtn = document.getElementById("menuToggleBtn");
@@ -214,13 +233,16 @@ async function loadMyBookings() {
           return;
         }
 
-        if (!paymentProof.files || !paymentProof.files[0]) {
-          paymentMsg.textContent = "Please upload a screenshot image.";
+        const proofFile = paymentProof.files && paymentProof.files[0] ? paymentProof.files[0] : null;
+        const proofError = validatePaymentProof(proofFile);
+
+        if (proofError) {
+          paymentMsg.textContent = proofError;
           return;
         }
 
         const fd = new FormData();
-        fd.append("proof", paymentProof.files[0]);
+        fd.append("proof", proofFile);
         fd.append("paymentMethod", paymentMethod.value);
 
         const result = await apiFetch(`/api/upload-proof/${latest._id}`, {
