@@ -14,10 +14,10 @@ function getConfiguredApiBase() {
   }
 
   if (/\.vercel\.app$/i.test(window.location.hostname)) {
-    return "https://casa-del-rosa.onrender.com";
+    return "https://casa-del-rosa-backend.onrender.com";
   }
 
-  return "https://casa-del-rosa.onrender.com";
+  return "https://casa-del-rosa-backend.onrender.com";
 }
 
 const API = getConfiguredApiBase();
