@@ -109,6 +109,10 @@ async function loadBookings(options = {}) {
     data.forEach((booking) => {
       const tr = document.createElement("tr");
       const proofUrl = booking.proof ? `${API}/uploads/${booking.proof}` : "";
+      const paymentStatus = booking.paymentStatus || "Not Started";
+      const paymentBadgeClass = paymentStatus === "Proof Uploaded" ? "badge good" : paymentStatus === "Pending Proof" ? "badge warn" : "badge";
+      const proofDisplay = proofUrl ? `<a class="proofLink" href="${proofUrl}" target="_blank">View</a>` : "-";
+      const referenceDisplay = booking.paymentReference ? `<span class="small">${booking.paymentReference}</span>` : "";
 
       tr.innerHTML = `
         <td>${booking.name || ""}</td>
@@ -119,7 +123,8 @@ async function loadBookings(options = {}) {
         <td>${normalizeDateOnly(booking.checkout)}</td>
         <td>P${Number(booking.total || 0).toLocaleString()}</td>
         <td>${booking.paymentMethod || "-"}</td>
-        <td>${proofUrl ? `<a class="proofLink" href="${proofUrl}" target="_blank">View</a>` : "-"}</td>
+        <td><span class="${paymentBadgeClass}">${paymentStatus}</span>${referenceDisplay}</td>
+        <td>${proofDisplay}</td>
         <td><span class="${badgeClass(booking.status)}">${booking.status || "Pending"}</span></td>
         <td>
           <div class="actions">

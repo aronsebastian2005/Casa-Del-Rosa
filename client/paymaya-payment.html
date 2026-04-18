@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Casa Del Rosa | PayMaya Payment</title>
+  <link rel="stylesheet" href="client.css"/>
+  <style>
+    .payment-container {
+      max-width: 500px;
+      margin: 40px auto;
+      background: linear-gradient(135deg, #90ee90 0%, #3cb371 100%);
+      border-radius: 16px;
+      padding: 0;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      color: white;
+      font-family: "Montserrat", sans-serif;
+    }
+
+    .payment-header {
+      background: rgba(0,0,0,0.1);
+      padding: 24px;
+      text-align: center;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .payment-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .payment-header .badge {
+      display: inline-block;
+      background: #4CAF50;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .payment-body {
+      padding: 32px;
+      text-align: center;
+    }
+
+    .qr-section {
+      margin: 24px 0;
+      padding: 20px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .qr-section img {
+      max-width: 220px;
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .qr-label {
+      font-size: 12px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .payment-details {
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 12px 0;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 12px;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      opacity: 0.8;
+      font-weight: 500;
+    }
+
+    .detail-value {
+      font-weight: 700;
+      font-family: "Courier New", monospace;
+    }
+
+    .reference-box {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+      word-break: break-all;
+    }
+
+    .reference-label {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-bottom: 6px;
+    }
+
+    .reference-value {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: "Courier New", monospace;
+      letter-spacing: 2px;
+    }
+
+    .instructions {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 20px 0;
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .instructions h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .instructions ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .instructions li {
+      margin: 8px 0;
+    }
+
+    .payment-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn-payment {
+      flex: 1;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-confirm {
+      background: #4CAF50;
+      color: white;
+      border: 2px solid #4CAF50;
+    }
+
+    .btn-confirm:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: white;
+      border: 2px solid white;
+    }
+
+    .btn-cancel:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .btn-payment:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .payment-footer {
+      background: rgba(0,0,0,0.1);
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+      opacity: 0.8;
+      border-radius: 0 0 16px 16px;
+    }
+
+    .msg {
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .msg.error {
+      background: rgba(244, 67, 54, 0.3);
+      border: 1px solid rgba(244, 67, 54, 0.8);
+    }
+
+    .msg.success {
+      background: rgba(76, 175, 80, 0.3);
+      border: 1px solid rgba(76, 175, 80, 0.8);
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background: linear-gradient(135deg, #90ee90 0%, #3cb371 100%); min-height:100vh; display:flex; align-items:center;">
+  <div class="payment-container">
+    <div class="payment-header">
+      <h1>💳 PayMaya Payment</h1>
+      <div class="badge">SIMULATOR</div>
+    </div>
+
+    <div class="payment-body">
+      <div id="statusMsg" class="msg" style="display:none;"></div>
+
+      <div class="qr-section">
+        <img id="qrImage" src="assets/paymaya.jpg" alt="PayMaya QR Code">
+        <div class="qr-label">Scan this QR code with your PayMaya app</div>
+      </div>
+
+      <div class="payment-details">
+        <div class="detail-row">
+          <span class="detail-label">📱 Account Name:</span>
+          <span class="detail-value" id="accountName">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">📞 Account Number:</span>
+          <span class="detail-value" id="accountNumber">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">💰 Amount:</span>
+          <span class="detail-value" id="paymentAmount">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">📅 Reference:</span>
+          <span class="detail-value" id="paymentReference" style="font-size:12px;">-</span>
+        </div>
+      </div>
+
+      <div class="reference-box">
+        <div class="reference-label">TRANSACTION REFERENCE (Save this)</div>
+        <div class="reference-value" id="refDisplay">-</div>
+      </div>
+
+      <div class="instructions">
+        <h4>⏱️ Payment Steps</h4>
+        <ol>
+          <li>Open your PayMaya mobile app</li>
+          <li>Scan the QR code above OR enter account number</li>
+          <li>Enter the amount: <strong id="stepAmount">-</strong></li>
+          <li>Enter reference: <strong id="stepRef">-</strong></li>
+          <li>Confirm and complete the payment</li>
+          <li>Click "Confirm Payment" below</li>
+          <li>Take a screenshot as proof</li>
+        </ol>
+      </div>
+
+      <div class="payment-actions">
+        <button class="btn-payment btn-confirm" id="confirmBtn" type="button">
+          ✅ Confirm Payment
+        </button>
+        <button class="btn-payment btn-cancel" id="cancelBtn" type="button">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <div class="payment-footer">
+      This is a simulator. No actual money will be transferred.
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    let bookingId = new URLSearchParams(window.location.search).get("bookingId");
+    const accountName = document.getElementById("accountName");
+    const accountNumber = document.getElementById("accountNumber");
+    const paymentAmount = document.getElementById("paymentAmount");
+    const paymentReference = document.getElementById("paymentReference");
+    const refDisplay = document.getElementById("refDisplay");
+    const stepAmount = document.getElementById("stepAmount");
+    const stepRef = document.getElementById("stepRef");
+    const confirmBtn = document.getElementById("confirmBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+    const statusMsg = document.getElementById("statusMsg");
+
+    async function getLatestBookingId() {
+      try {
+        const data = await apiFetch(`/api/my-bookings`);
+        if (data && data.length > 0) {
+          return data[0]._id;
+        }
+        throw new Error("No bookings found");
+      } catch (err) {
+        throw new Error(`Failed to get booking: ${err.message}`);
+      }
+    }
+
+    if (!bookingId) {
+      statusMsg.className = "msg";
+      statusMsg.textContent = "⏳ Loading your booking...";
+      statusMsg.style.display = "block";
+      getLatestBookingId().then(id => {
+        bookingId = id;
+        loadPaymentDetails();
+      }).catch(err => {
+        statusMsg.className = "msg error";
+        statusMsg.textContent = `❌ ${err.message}. Returning to home...`;
+        statusMsg.style.display = "block";
+        setTimeout(() => window.location.href = "home.html", 2000);
+      });
+    }
+
+    async function loadPaymentDetails() {
+      try {
+        // Create payment simulator session
+        const sessionResult = await apiFetch(`/api/payment-simulator/session/${bookingId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ paymentMethod: "PayMaya" })
+        });
+
+        // Get booking details
+        const data = await apiFetch(`/api/my-bookings`);
+        const booking = data.find(b => String(b._id) === String(bookingId));
+
+        if (!booking) {
+          throw new Error("Booking not found");
+        }
+
+        if (booking.status !== "Approved") {
+          throw new Error("Booking is not approved yet");
+        }
+
+        const amount = `P${Number(booking.total || 0).toLocaleString()}`;
+
+        accountName.textContent = sessionResult.accountName || "Casa Del Rosa PayMaya Demo";
+        accountNumber.textContent = sessionResult.accountNumber || "0998-555-0264";
+        paymentAmount.textContent = amount;
+        paymentReference.textContent = sessionResult.reference;
+        refDisplay.textContent = sessionResult.reference;
+        stepAmount.textContent = amount;
+        stepRef.textContent = sessionResult.reference;
+      } catch (err) {
+        statusMsg.className = "msg error";
+        statusMsg.textContent = `❌ ${err.message}`;
+        statusMsg.style.display = "block";
+        confirmBtn.disabled = true;
+      }
+    }
+
+    confirmBtn.onclick = () => {
+      statusMsg.className = "msg success";
+      statusMsg.textContent = "✅ Payment confirmed! Returning to upload proof...";
+      statusMsg.style.display = "block";
+      confirmBtn.disabled = true;
+      
+      setTimeout(() => {
+        window.location.href = `home.html?paymentStatus=completed`;
+      }, 1500);
+    };
+
+    cancelBtn.onclick = () => {
+      if (confirm("Cancel payment? You'll return to booking page.")) {
+        window.location.href = "home.html";
+      }
+    };
+
+    if (bookingId) {
+      loadPaymentDetails();
+    }
+  </script>
+</body>
+</html>

@@ -31,8 +31,19 @@ function setupAdminMenu(isLoggedIn) {
     return;
   }
 
-  if (isLoggedIn && adminLink) {
-    adminLink.remove();
+  if (isLoggedIn) {
+    // Hide the entire menu when logged in
+    if (menu) {
+      menu.style.display = "none";
+    }
+    if (toggleBtn) {
+      toggleBtn.style.display = "none";
+      toggleBtn.style.visibility = "hidden";
+    }
+    if (adminLink) {
+      adminLink.remove();
+    }
+    return;
   }
 
   toggleBtn.addEventListener("click", (event) => {
@@ -159,12 +170,49 @@ async function loadMyBookings() {
   const paymentMsg = document.getElementById("paymentMsg");
   const paymentSimulatorMsg = document.getElementById("paymentSimulatorMsg");
   const paymentSimulatorDetails = document.getElementById("paymentSimulatorDetails");
+  const sessionCountdown = document.getElementById("sessionCountdown");
   const paymentForm = document.getElementById("paymentForm");
   const paymentMethod = document.getElementById("paymentMethod");
   const paymentProof = document.getElementById("paymentProof");
   const gcashBox = document.getElementById("gcashBox");
   const paymayaBox = document.getElementById("paymayaBox");
   let paymentSession = null;
+  let countdownInterval = null;
+
+  function startSessionCountdown(expiresAt) {
+    if (countdownInterval) clearInterval(countdownInterval);
+    const updateCountdown = () => {
+      const now = new Date();
+      const expireTime = new Date(expiresAt);
+      const diff = expireTime - now;
+
+      if (diff <= 0) {
+        sessionCountdown.textContent = "❌ Session expired. Open simulator again.";
+        sessionCountdown.style.color = "#d9534f";
+        clearInterval(countdownInterval);
+        paymentSession = null;
+        gcashBox.style.display = "none";
+        paymayaBox.style.display = "none";
+        return;
+      }
+
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      const color = diff < 300000 ? "#d9534f" : "#5cb85c";
+      sessionCountdown.style.color = color;
+      sessionCountdown.textContent = `⏱️ Session expires in: ${minutes}m ${seconds}s`;
+    };
+
+    updateCountdown();
+    sessionCountdown.style.display = "block";
+    countdownInterval = setInterval(updateCountdown, 1000);
+  }
+
+  function clearSessionCountdown() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    sessionCountdown.style.display = "none";
+    sessionCountdown.textContent = "";
+  }
 
   try {
     const data = await apiFetch("/api/my-bookings");
@@ -174,6 +222,7 @@ async function loadMyBookings() {
     paymentMsg.textContent = "";
     paymentSimulatorMsg.textContent = "";
     paymentSimulatorDetails.textContent = "";
+    clearSessionCountdown();
     gcashBox.style.display = "none";
     paymayaBox.style.display = "none";
 
@@ -201,6 +250,12 @@ async function loadMyBookings() {
 
     if (status === "approved") {
       paymentSection.style.display = "block";
+      paymentSimulatorMsg.textContent = "👇 Select a payment method and proceed to merchant checkout";
+      paymentSimulatorMsg.style.color = "#03a9f4";
+      gcashBox.style.display = "none";
+      paymayaBox.style.display = "none";
+      paymentSimulatorDetails.textContent = "";
+      clearSessionCountdown();
     }
 
     data.forEach((booking) => {
@@ -221,76 +276,64 @@ async function loadMyBookings() {
       rows.appendChild(tr);
     });
 
-    async function openPaymentSimulator(method) {
-      paymentSimulatorMsg.textContent = `Opening ${method} simulator...`;
-      paymentSimulatorDetails.textContent = "";
-
-      try {
-        const result = await apiFetch(`/api/payment-simulator/session/${latest._id}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ paymentMethod: method })
-        });
-
-        paymentSession = result;
-        paymentMethod.value = method;
-        gcashBox.style.display = method === "GCash" ? "block" : "none";
-        paymayaBox.style.display = method === "PayMaya" ? "block" : "none";
-        paymentSimulatorMsg.textContent = `${method} simulator ready. Reference: ${result.reference}`;
-        paymentSimulatorDetails.textContent = `${result.accountName} • ${result.accountNumber} • ${result.instructions}`;
-      } catch (err) {
-        paymentSession = null;
-        paymentSimulatorMsg.textContent = err.message;
-      }
-    }
-
-    document.getElementById("showGcash").onclick = () => openPaymentSimulator("GCash");
-    document.getElementById("showPaymaya").onclick = () => openPaymentSimulator("PayMaya");
+    // Old payment simulator function - no longer used
+    // Payment buttons are now direct links
 
     paymentForm.onsubmit = async (e) => {
       e.preventDefault();
-      paymentMsg.textContent = "Submitting payment proof...";
+      paymentMsg.textContent = "📤 Submitting payment proof...";
+      paymentMsg.style.color = "#03a9f4";
 
       try {
         if (!paymentMethod.value) {
-          paymentMsg.textContent = "Please select GCash or PayMaya.";
-          return;
+          throw new Error("Please select GCash or PayMaya payment method.");
+        }
+
+        // Verify booking still has active payment session
+        const currentBooking = data[0];
+        if (!currentBooking.paymentReference) {
+          throw new Error("No active payment session. Please open the payment simulator first.");
+        }
+
+        if (currentBooking.paymentMethod !== paymentMethod.value) {
+          throw new Error("Payment method mismatch. Please open the simulator again.");
         }
 
         const proofFile = paymentProof.files && paymentProof.files[0] ? paymentProof.files[0] : null;
         const proofError = validatePaymentProof(proofFile);
 
         if (proofError) {
-          paymentMsg.textContent = proofError;
-          return;
+          throw new Error(proofError);
         }
 
-        if (!paymentSession || paymentSession.paymentMethod !== paymentMethod.value) {
-          paymentMsg.textContent = "Please open the GCash or PayMaya simulator first.";
-          return;
+        const now = new Date();
+        const expireTime = new Date(currentBooking.paymentSessionExpiresAt);
+        if (now > expireTime) {
+          throw new Error("Your payment session has expired (30-minute limit). Please open a new session.");
         }
 
         const fd = new FormData();
         fd.append("proof", proofFile);
         fd.append("paymentMethod", paymentMethod.value);
-        fd.append("paymentReference", paymentSession.reference);
+        fd.append("paymentReference", currentBooking.paymentReference);
 
         const result = await apiFetch(`/api/upload-proof/${latest._id}`, {
           method: "PUT",
           body: fd
         });
 
-        paymentMsg.textContent = result.message || "Payment proof uploaded.";
+        paymentMsg.textContent = result.message || "✅ Payment proof submitted successfully!";
+        paymentMsg.style.color = "#5cb85c";
         paymentForm.reset();
-        paymentSession = null;
+        paymentMethod.value = "";
         paymentSimulatorMsg.textContent = "";
         paymentSimulatorDetails.textContent = "";
+        clearSessionCountdown();
         gcashBox.style.display = "none";
         paymayaBox.style.display = "none";
       } catch (err) {
-        paymentMsg.textContent = err.message;
+        paymentMsg.textContent = `❌ ${err.message}`;
+        paymentMsg.style.color = "#d9534f";
       }
     };
   } catch (e) {

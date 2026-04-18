@@ -139,19 +139,31 @@ mongoose.connect(MONGODB_URI)
   .catch((err) => console.log("❌ MongoDB error:", err));
 
 async function sendEmail({ to, subject, html }) {
-  const info = await mailer.sendMail({
-    from: SMTP_FROM_EMAIL,
-    to,
-    subject,
-    html
-  });
+  try {
+    const info = await mailer.sendMail({
+      from: SMTP_FROM_EMAIL,
+      to,
+      subject,
+      html
+    });
 
-  console.log("SMTP email sent:", {
-    to,
-    messageId: info.messageId || null
-  });
+    console.log("✅ SMTP email sent:", {
+      to,
+      messageId: info.messageId || null
+    });
 
-  return info;
+    return info;
+  } catch (err) {
+    console.error("❌ SMTP SEND FAILED:", {
+      error: err.message,
+      code: err.code,
+      to,
+      subject,
+      smtpUser: SMTP_USER,
+      smtpHost: SMTP_HOST
+    });
+    throw err;
+  }
 }
 
 function auth(req, res, next) {
@@ -205,7 +217,8 @@ function sendJsonError(res, status, message, error = null) {
 
 function queueVerificationEmail(email, code, name) {
   sendVerificationEmail(email, code, name).catch((err) => {
-    console.log("ASYNC VERIFICATION EMAIL ERROR:", err);
+    console.error("❌ VERIFICATION EMAIL ERROR:", err.message || err);
+    console.error("Email details:", { to: email, subject: "Your Casa Del Rosa Verification Code" });
   });
 }
 
@@ -835,47 +848,86 @@ app.post("/api/payment-simulator/session/:id", auth, async (req, res) => {
   }
 });
 
+app.get("/api/proof/:id", auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return sendJsonError(res, 404, "Booking not found");
+    }
+
+    // Admin or booking owner can view
+    const isAdmin = req.user.role === "admin";
+    const isOwner = String(booking.userId) === String(req.user.id);
+    if (!isAdmin && !isOwner) {
+      return sendJsonError(res, 403, "Not authorized");
+    }
+
+    if (!booking.proof) {
+      return sendJsonError(res, 404, "No proof file found");
+    }
+
+    const proofPath = path.join(uploadsPath, booking.proof);
+    if (!fs.existsSync(proofPath)) {
+      return sendJsonError(res, 404, "Proof file not found");
+    }
+
+    res.download(proofPath);
+  } catch (err) {
+    console.error("PROOF DOWNLOAD ERROR:", err);
+    return sendJsonError(res, 500, "Failed to download proof", err);
+  }
+});
+
 app.put("/api/upload-proof/:id", auth, (req, res) => {
   upload.single("proof")(req, res, async (uploadErr) => {
     if (uploadErr) {
       if (uploadErr instanceof multer.MulterError && uploadErr.code === "LIMIT_FILE_SIZE") {
-        return sendJsonError(res, 400, "Screenshot image must be 5MB or smaller");
+        return sendJsonError(res, 400, "Screenshot image must be 5MB or smaller.");
       }
 
-      return sendJsonError(res, 400, uploadErr.message || "Upload failed");
+      return sendJsonError(res, 400, uploadErr.message || "Upload failed. Please try again.");
     }
 
     try {
       const booking = await Booking.findById(req.params.id);
 
       if (!booking) {
-        return sendJsonError(res, 404, "Booking not found");
+        return sendJsonError(res, 404, "Booking not found.");
       }
 
       if (String(booking.userId) !== String(req.user.id)) {
-        return sendJsonError(res, 403, "Not allowed");
+        return sendJsonError(res, 403, "You are not authorized to upload proof for this booking.");
       }
 
       if (booking.status !== "Approved") {
-        return sendJsonError(res, 400, "You can upload proof only after approval");
+        return sendJsonError(res, 400, "You can only upload proof after your reservation is approved.");
       }
 
       if (!req.file) {
-        return sendJsonError(res, 400, "Please select a screenshot image");
+        return sendJsonError(res, 400, "Please select a screenshot image to upload.");
       }
 
       const paymentMethod = String(req.body.paymentMethod || "").trim();
       if (!paymentMethod || !["GCash", "PayMaya"].includes(paymentMethod)) {
-        return sendJsonError(res, 400, "Please select GCash or PayMaya");
+        return sendJsonError(res, 400, "Invalid payment method. Please select GCash or PayMaya.");
       }
 
       const paymentReference = String(req.body.paymentReference || "").trim();
-      if (!paymentReference || paymentReference !== booking.paymentReference) {
-        return sendJsonError(res, 400, "Please open the payment simulator again before uploading proof");
+      if (!paymentReference) {
+        return sendJsonError(res, 400, "Payment reference is missing. Please open the payment simulator again.");
       }
 
-      if (!booking.paymentSessionExpiresAt || new Date() > new Date(booking.paymentSessionExpiresAt)) {
-        return sendJsonError(res, 400, "Payment simulator session expired. Please open it again");
+      if (paymentReference !== booking.paymentReference) {
+        return sendJsonError(res, 400, "Payment reference does not match. Your session may have expired. Please open the payment simulator again.");
+      }
+
+      if (!booking.paymentSessionExpiresAt) {
+        return sendJsonError(res, 400, "No active payment session. Please open the payment simulator first.");
+      }
+
+      if (new Date() > new Date(booking.paymentSessionExpiresAt)) {
+        return sendJsonError(res, 400, "Your payment simulator session has expired (30 minutes limit). Please open a new session to try again.");
       }
 
       booking.proof = req.file.filename;
@@ -884,10 +936,11 @@ app.put("/api/upload-proof/:id", auth, (req, res) => {
       booking.paymentStatus = "Proof Uploaded";
       await booking.save();
 
-      return res.json({ message: "Payment proof uploaded" });
+      console.log("✅ Payment proof uploaded:", { bookingId: booking._id, paymentMethod, filename: req.file.filename });
+      return res.json({ message: "✅ Payment proof uploaded successfully. Our team will verify it shortly." });
     } catch (err) {
-      console.log("UPLOAD ERROR:", err);
-      return sendJsonError(res, 500, "Upload failed", err);
+      console.error("❌ UPLOAD ERROR:", err.message || err);
+      return sendJsonError(res, 500, "Upload failed. Please try again.", err);
     }
   });
 });
