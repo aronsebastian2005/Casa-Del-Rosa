@@ -223,6 +223,9 @@
             <option value="GCash">GCash</option>
             <option value="PayMaya">PayMaya</option>
           </select>
+          <div id="paymentSimulatorMsg" class="small" style="margin-top:8px;"></div>
+          <div id="paymentSimulatorDetails" class="small" style="margin-top:6px;"></div>
+          <div id="sessionCountdown" class="small" style="margin-top:6px; display:none;"></div>
 
           <div class="row" style="margin-top:12px;">
             <a href="gcash-payment.html" class="secondary" style="display:inline-block; padding:10px 20px; text-decoration:none; border-radius:4px; background:#0066cc; color:white; border:none; cursor:pointer; text-align:center; font-weight:600;">
@@ -232,6 +235,9 @@
               PayMaya Payment
             </a>
           </div>
+
+          <div id="gcashBox" style="display:none;"></div>
+          <div id="paymayaBox" style="display:none;"></div>
 
             <form id="paymentForm" enctype="multipart/form-data" style="margin-top:14px;">
               <label>Upload Screenshot of GCash or PayMaya Payment</label>
