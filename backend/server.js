@@ -4,6 +4,7 @@ const cors = require("cors");
 const multer = require("multer");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 const fs = require("fs");
 const path = require("path");
 
@@ -41,23 +42,63 @@ const app = express();
 
 const allowedOrigins = new Set([
   "http://localhost:3000",
+  "http://localhost:8080",
   "http://localhost:5000",
   "http://127.0.0.1:3000",
+  "http://127.0.0.1:8080",
   "http://127.0.0.1:5000",
   "https://casa-del-rosa-frontend.onrender.com",
   "https://casa-del-rosa-admin.onrender.com"
 ]);
 
-app.use(cors({
+const extraAllowedOrigins = String(process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+extraAllowedOrigins.forEach((origin) => {
+  allowedOrigins.add(origin);
+});
+
+function isAllowedOrigin(origin) {
+  if (!origin || allowedOrigins.has(origin)) {
+    return true;
+  }
+
+  return /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin);
+}
+
+const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
       return;
     }
 
     callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  optionsSuccessStatus: 200
+};
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+
+  if (origin && isAllowedOrigin(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   }
-}));
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+    return;
+  }
+
+  next();
+});
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -70,50 +111,47 @@ app.use("/uploads", express.static(uploadsPath));
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const JWT_SECRET = process.env.JWT_SECRET || "";
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "";
+const SMTP_HOST = process.env.SMTP_HOST || "";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_SECURE = String(process.env.SMTP_SECURE || "true").toLowerCase() !== "false";
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+const SMTP_FROM_EMAIL = process.env.SMTP_FROM_EMAIL || "";
 const PORT = Number(process.env.PORT || 5000);
 
-if (!MONGODB_URI || !JWT_SECRET || !RESEND_API_KEY || !RESEND_FROM_EMAIL) {
+if (!MONGODB_URI || !JWT_SECRET || !SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM_EMAIL) {
   console.error("Missing required environment variables. Check backend/.env or hosting env settings.");
   process.exit(1);
 }
+
+const mailer = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_SECURE,
+  auth: {
+    user: SMTP_USER,
+    pass: SMTP_PASS
+  }
+});
 
 mongoose.connect(MONGODB_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.log("❌ MongoDB error:", err));
 
-async function sendResendEmail({ to, subject, html }) {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      from: RESEND_FROM_EMAIL,
-      to,
-      subject,
-      html
-    })
-  });
-
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    throw new Error(
-      data && data.message
-        ? `Resend error: ${data.message}`
-        : `Resend request failed (${res.status})`
-    );
-  }
-
-  console.log("Resend email sent:", {
+async function sendEmail({ to, subject, html }) {
+  const info = await mailer.sendMail({
+    from: SMTP_FROM_EMAIL,
     to,
-    id: data && data.id ? data.id : null
+    subject,
+    html
   });
 
-  return data;
+  console.log("SMTP email sent:", {
+    to,
+    messageId: info.messageId || null
+  });
+
+  return info;
 }
 
 function auth(req, res, next) {
@@ -241,6 +279,50 @@ function computeReservationTotal(checkin, checkout, guests) {
   return baseTotal + extraFee;
 }
 
+function getTodayDateOnly() {
+  return normalizeDateOnly(new Date().toISOString());
+}
+
+function validateReservationDates(checkin, checkout) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(checkin) || !/^\d{4}-\d{2}-\d{2}$/.test(checkout)) {
+    return "Invalid date format";
+  }
+
+  const today = getTodayDateOnly();
+
+  if (toDayNumber(checkin) < toDayNumber(today)) {
+    return `Check-in cannot be earlier than today (${today})`;
+  }
+
+  if (toDayNumber(checkout) <= toDayNumber(checkin)) {
+    return "Checkout must be after check-in";
+  }
+
+  return "";
+}
+
+function createPaymentReference(paymentMethod) {
+  const prefix = paymentMethod === "GCash" ? "GCSH" : "PYMY";
+  const randomPart = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `${prefix}-${Date.now()}-${randomPart}`;
+}
+
+function getPaymentSimulationDetails(paymentMethod, reference) {
+  if (paymentMethod === "GCash") {
+    return {
+      accountName: "Casa Del Rosa GCash Demo",
+      accountNumber: "0917-555-0148",
+      instructions: `Send the reservation payment in the simulator, then upload your proof using reference ${reference}.`
+    };
+  }
+
+  return {
+    accountName: "Casa Del Rosa PayMaya Demo",
+    accountNumber: "0998-555-0264",
+    instructions: `Complete the PayMaya simulator checkout, then upload your proof using reference ${reference}.`
+  };
+}
+
 async function sendVerificationEmail(toEmail, code, name) {
   const html = `
     <div style="font-family:Arial,sans-serif;padding:20px;color:#222">
@@ -253,7 +335,7 @@ async function sendVerificationEmail(toEmail, code, name) {
     </div>
   `;
 
-  await sendResendEmail({
+  await sendEmail({
     to: toEmail,
     subject: "Your Casa Del Rosa Verification Code",
     html
@@ -272,7 +354,7 @@ async function sendResetPasswordEmail(toEmail, code, name) {
     </div>
   `;
 
-  await sendResendEmail({
+  await sendEmail({
     to: toEmail,
     subject: "Your Casa Del Rosa Password Reset Code",
     html
@@ -567,12 +649,9 @@ app.post("/api/book", auth, async (req, res) => {
       return sendJsonError(res, 400, "Guests must be at least 1");
     }
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(checkin) || !/^\d{4}-\d{2}-\d{2}$/.test(checkout)) {
-      return sendJsonError(res, 400, "Invalid date format");
-    }
-
-    if (toDayNumber(checkout) <= toDayNumber(checkin)) {
-      return sendJsonError(res, 400, "Checkout must be after check-in");
+    const dateError = validateReservationDates(checkin, checkout);
+    if (dateError) {
+      return sendJsonError(res, 400, dateError);
     }
 
     const approved = await Booking.find({ status: "Approved" });
@@ -712,6 +791,50 @@ app.get("/api/approved-dates", async (req, res) => {
   }
 });
 
+app.post("/api/payment-simulator/session/:id", auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return sendJsonError(res, 404, "Booking not found");
+    }
+
+    if (String(booking.userId) !== String(req.user.id)) {
+      return sendJsonError(res, 403, "Not allowed");
+    }
+
+    if (booking.status !== "Approved") {
+      return sendJsonError(res, 400, "You can only open a payment simulator after approval");
+    }
+
+    const paymentMethod = String(req.body.paymentMethod || "").trim();
+    if (!["GCash", "PayMaya"].includes(paymentMethod)) {
+      return sendJsonError(res, 400, "Please choose GCash or PayMaya");
+    }
+
+    const reference = createPaymentReference(paymentMethod);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    const details = getPaymentSimulationDetails(paymentMethod, reference);
+
+    booking.paymentMethod = paymentMethod;
+    booking.paymentReference = reference;
+    booking.paymentStatus = "Pending Proof";
+    booking.paymentSessionExpiresAt = expiresAt;
+    await booking.save();
+
+    return res.json({
+      bookingId: booking._id,
+      paymentMethod,
+      reference,
+      expiresAt,
+      ...details
+    });
+  } catch (err) {
+    console.log("PAYMENT SIMULATOR ERROR:", err);
+    return sendJsonError(res, 500, "Failed to create payment session", err);
+  }
+});
+
 app.put("/api/upload-proof/:id", auth, (req, res) => {
   upload.single("proof")(req, res, async (uploadErr) => {
     if (uploadErr) {
@@ -746,8 +869,19 @@ app.put("/api/upload-proof/:id", auth, (req, res) => {
         return sendJsonError(res, 400, "Please select GCash or PayMaya");
       }
 
+      const paymentReference = String(req.body.paymentReference || "").trim();
+      if (!paymentReference || paymentReference !== booking.paymentReference) {
+        return sendJsonError(res, 400, "Please open the payment simulator again before uploading proof");
+      }
+
+      if (!booking.paymentSessionExpiresAt || new Date() > new Date(booking.paymentSessionExpiresAt)) {
+        return sendJsonError(res, 400, "Payment simulator session expired. Please open it again");
+      }
+
       booking.proof = req.file.filename;
       booking.paymentMethod = paymentMethod;
+      booking.paymentReference = paymentReference;
+      booking.paymentStatus = "Proof Uploaded";
       await booking.save();
 
       return res.json({ message: "Payment proof uploaded" });

@@ -1,7 +1,26 @@
-const API =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
-    : "https://casa-del-rosa.onrender.com";
+function getConfiguredApiBase() {
+  const runtimeValue =
+    window.CASA_DEL_ROSA_API_URL ||
+    document.querySelector('meta[name="api-base-url"]')?.content ||
+    localStorage.getItem("casaDelRosaApiUrl") ||
+    "";
+
+  if (runtimeValue) {
+    return runtimeValue.replace(/\/+$/, "");
+  }
+
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "http://localhost:5000";
+  }
+
+  if (/\.vercel\.app$/i.test(window.location.hostname)) {
+    return "https://casa-del-rosa.onrender.com";
+  }
+
+  return "https://casa-del-rosa.onrender.com";
+}
+
+const API = getConfiguredApiBase();
 
 function setToken(token) {
   localStorage.setItem("token", token);

@@ -41,6 +41,10 @@ function ymd(d) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function getTodayDateOnly() {
+  return ymd(new Date());
+}
+
 function isWeekend(dateStr) {
   const { year, month, day } = parseDateParts(dateStr);
   const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
@@ -55,6 +59,28 @@ function rangeHasBlockedDates(checkin, checkout) {
     if (blocked.has(fromDayNumber(day))) return true;
   }
   return false;
+}
+
+function validateReservationDates(checkin, checkout) {
+  const today = getTodayDateOnly();
+
+  if (!checkin || !checkout) {
+    return "";
+  }
+
+  if (toDayNumber(checkin) < toDayNumber(today)) {
+    return `Check-in cannot be earlier than today (${today}).`;
+  }
+
+  if (toDayNumber(checkout) <= toDayNumber(checkin)) {
+    return "Checkout must be after check-in.";
+  }
+
+  if (rangeHasBlockedDates(checkin, checkout)) {
+    return "Selected dates include reserved dates.";
+  }
+
+  return "";
 }
 
 function getStoredUser() {
@@ -144,25 +170,16 @@ function calculateTotal() {
     return 0;
   }
 
-  if (toDayNumber(checkout) <= toDayNumber(checkin)) {
+  const dateError = validateReservationDates(checkin, checkout);
+
+  if (dateError) {
     totalDisplay.textContent = "P0";
     totalInput.value = "0";
-    baseBreakdown.textContent = "Checkout must be after check-in.";
+    baseBreakdown.textContent = dateError;
     baseAmount.textContent = "P0";
     extraBreakdown.textContent = "Please adjust your dates first.";
     extraAmount.textContent = "P0";
-    priceMsg.textContent = "Checkout must be after check-in.";
-    return 0;
-  }
-
-  if (rangeHasBlockedDates(checkin, checkout)) {
-    totalDisplay.textContent = "P0";
-    totalInput.value = "0";
-    baseBreakdown.textContent = "Selected dates include reserved dates.";
-    baseAmount.textContent = "P0";
-    extraBreakdown.textContent = "Please choose another date range.";
-    extraAmount.textContent = "P0";
-    priceMsg.textContent = "Selected dates include reserved dates.";
+    priceMsg.textContent = dateError;
     return 0;
   }
 
@@ -269,6 +286,13 @@ function showSuccessState(payload) {
   document.getElementById("checkout").addEventListener("change", calculateTotal);
   document.getElementById("guests").addEventListener("input", calculateTotal);
 
+  const today = getTodayDateOnly();
+  document.getElementById("checkin").min = today;
+  document.getElementById("checkout").min = today;
+  document.getElementById("checkin").addEventListener("change", (event) => {
+    document.getElementById("checkout").min = event.target.value || today;
+  });
+
   const form = document.getElementById("bookingForm");
   const msg = document.getElementById("msg");
 
@@ -294,6 +318,12 @@ function showSuccessState(payload) {
         checkout: normalizeDateOnly(form.checkout.value),
         total
       };
+
+      const dateError = validateReservationDates(payload.checkin, payload.checkout);
+      if (dateError) {
+        msg.textContent = dateError;
+        return;
+      }
 
       await apiFetch("/api/book", {
         method: "POST",

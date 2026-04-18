@@ -19,6 +19,13 @@ const BookingSchema = new mongoose.Schema(
 
     proof: { type: String, default: "" },
     paymentMethod: { type: String, default: "" },
+    paymentReference: { type: String, default: "" },
+    paymentStatus: {
+      type: String,
+      enum: ["Not Started", "Pending Proof", "Proof Uploaded"],
+      default: "Not Started"
+    },
+    paymentSessionExpiresAt: { type: Date, default: null },
 
     status: {
       type: String,

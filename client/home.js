@@ -22,12 +22,17 @@ function validatePaymentProof(file) {
   return "";
 }
 
-function setupAdminMenu() {
+function setupAdminMenu(isLoggedIn) {
   const menu = document.querySelector(".landing-menu");
   const toggleBtn = document.getElementById("menuToggleBtn");
+  const adminLink = document.querySelector("#menuDropdown a");
 
   if (!menu || !toggleBtn) {
     return;
+  }
+
+  if (isLoggedIn && adminLink) {
+    adminLink.remove();
   }
 
   toggleBtn.addEventListener("click", (event) => {
@@ -152,11 +157,14 @@ async function loadMyBookings() {
   const statusBox = document.getElementById("statusBox");
   const paymentSection = document.getElementById("paymentSection");
   const paymentMsg = document.getElementById("paymentMsg");
+  const paymentSimulatorMsg = document.getElementById("paymentSimulatorMsg");
+  const paymentSimulatorDetails = document.getElementById("paymentSimulatorDetails");
   const paymentForm = document.getElementById("paymentForm");
   const paymentMethod = document.getElementById("paymentMethod");
   const paymentProof = document.getElementById("paymentProof");
   const gcashBox = document.getElementById("gcashBox");
   const paymayaBox = document.getElementById("paymayaBox");
+  let paymentSession = null;
 
   try {
     const data = await apiFetch("/api/my-bookings");
@@ -164,6 +172,8 @@ async function loadMyBookings() {
     rows.innerHTML = "";
     paymentSection.style.display = "none";
     paymentMsg.textContent = "";
+    paymentSimulatorMsg.textContent = "";
+    paymentSimulatorDetails.textContent = "";
     gcashBox.style.display = "none";
     paymayaBox.style.display = "none";
 
@@ -211,17 +221,33 @@ async function loadMyBookings() {
       rows.appendChild(tr);
     });
 
-    document.getElementById("showGcash").onclick = () => {
-      gcashBox.style.display = "block";
-      paymayaBox.style.display = "none";
-      paymentMethod.value = "GCash";
-    };
+    async function openPaymentSimulator(method) {
+      paymentSimulatorMsg.textContent = `Opening ${method} simulator...`;
+      paymentSimulatorDetails.textContent = "";
 
-    document.getElementById("showPaymaya").onclick = () => {
-      paymayaBox.style.display = "block";
-      gcashBox.style.display = "none";
-      paymentMethod.value = "PayMaya";
-    };
+      try {
+        const result = await apiFetch(`/api/payment-simulator/session/${latest._id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ paymentMethod: method })
+        });
+
+        paymentSession = result;
+        paymentMethod.value = method;
+        gcashBox.style.display = method === "GCash" ? "block" : "none";
+        paymayaBox.style.display = method === "PayMaya" ? "block" : "none";
+        paymentSimulatorMsg.textContent = `${method} simulator ready. Reference: ${result.reference}`;
+        paymentSimulatorDetails.textContent = `${result.accountName} • ${result.accountNumber} • ${result.instructions}`;
+      } catch (err) {
+        paymentSession = null;
+        paymentSimulatorMsg.textContent = err.message;
+      }
+    }
+
+    document.getElementById("showGcash").onclick = () => openPaymentSimulator("GCash");
+    document.getElementById("showPaymaya").onclick = () => openPaymentSimulator("PayMaya");
 
     paymentForm.onsubmit = async (e) => {
       e.preventDefault();
@@ -241,9 +267,15 @@ async function loadMyBookings() {
           return;
         }
 
+        if (!paymentSession || paymentSession.paymentMethod !== paymentMethod.value) {
+          paymentMsg.textContent = "Please open the GCash or PayMaya simulator first.";
+          return;
+        }
+
         const fd = new FormData();
         fd.append("proof", proofFile);
         fd.append("paymentMethod", paymentMethod.value);
+        fd.append("paymentReference", paymentSession.reference);
 
         const result = await apiFetch(`/api/upload-proof/${latest._id}`, {
           method: "PUT",
@@ -252,6 +284,9 @@ async function loadMyBookings() {
 
         paymentMsg.textContent = result.message || "Payment proof uploaded.";
         paymentForm.reset();
+        paymentSession = null;
+        paymentSimulatorMsg.textContent = "";
+        paymentSimulatorDetails.textContent = "";
         gcashBox.style.display = "none";
         paymayaBox.style.display = "none";
       } catch (err) {
@@ -266,7 +301,7 @@ async function loadMyBookings() {
 
 (async function () {
   const isLoggedIn = Boolean(getToken());
-  setupAdminMenu();
+  setupAdminMenu(isLoggedIn);
   setupSectionNav();
   setupLandingActions(isLoggedIn);
 
