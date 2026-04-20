@@ -356,7 +356,7 @@ function setupScrollAnimations() {
   }, observerOptions);
 
   // Apply '.reveal' class to sections and images automatically
-  const targets = document.querySelectorAll("section, .landing-card, .gallery img, .feature-item");
+  const targets = document.querySelectorAll("section, .room-card, .amenity-card, .info-item, .hero-copy > *");
   targets.forEach((el) => {
     el.classList.add("reveal");
     observer.observe(el);
