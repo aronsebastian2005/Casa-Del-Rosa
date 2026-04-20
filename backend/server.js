@@ -47,6 +47,8 @@ const allowedOrigins = new Set([
   "http://127.0.0.1:3000",
   "http://127.0.0.1:8080",
   "http://127.0.0.1:5000",
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
   "https://casa-del-rosa-frontend.onrender.com",
   "https://casa-del-rosa-admin.onrender.com"
 ]);
@@ -99,15 +101,8 @@ app.use((req, res, next) => {
 });
 
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-const uploadsPath = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-}
-
-app.use("/uploads", express.static(uploadsPath));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
 const JWT_SECRET = process.env.JWT_SECRET || "";
@@ -182,18 +177,9 @@ function auth(req, res, next) {
   }
 }
 
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsPath);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname.replace(/\s+/g, "_"));
-  }
-});
-
+// ✅ CHANGED: memory storage instead of disk storage
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
     if (allowed.includes(file.mimetype)) {
@@ -323,16 +309,16 @@ function createPaymentReference(paymentMethod) {
 function getPaymentSimulationDetails(paymentMethod, reference) {
   if (paymentMethod === "GCash") {
     return {
-      accountName: "Casa Del Rosa GCash Demo",
+      accountName: "Casa Del Rosa GCash ",
       accountNumber: "0917-555-0148",
-      instructions: `Send the reservation payment in the simulator, then upload your proof using reference ${reference}.`
+      instructions: `Send the reservation payment in the , then upload your proof using reference ${reference}.`
     };
   }
 
   return {
-    accountName: "Casa Del Rosa PayMaya Demo",
+    accountName: "Casa Del Rosa PayMaya ",
     accountNumber: "0998-555-0264",
-    instructions: `Complete the PayMaya simulator checkout, then upload your proof using reference ${reference}.`
+    instructions: `Complete the PayMaya  checkout, then upload your proof using reference ${reference}.`
   };
 }
 
@@ -643,16 +629,16 @@ app.post("/api/auth/login", async (req, res) => {
 // ---------- BOOKINGS ----------
 app.post("/api/book", auth, async (req, res) => {
   try {
-  const body = req.body || {};
+    const body = req.body || {};
 
-  const name = String(body.name || req.user.name || "").trim();
-  const email = String(body.email || req.user.email || "").trim().toLowerCase();
-  const contact = String(body.contact || "").trim();
-  const guests = Number(body.guests);
-  const eventType = String(body.eventType || "").trim();
-  const specialRequests = String(body.specialRequests || "").trim();
-  const checkin = normalizeDateOnly(body.checkin);
-  const checkout = normalizeDateOnly(body.checkout);
+    const name = String(body.name || req.user.name || "").trim();
+    const email = String(body.email || req.user.email || "").trim().toLowerCase();
+    const contact = String(body.contact || "").trim();
+    const guests = Number(body.guests);
+    const eventType = String(body.eventType || "").trim();
+    const specialRequests = String(body.specialRequests || "").trim();
+    const checkin = normalizeDateOnly(body.checkin);
+    const checkout = normalizeDateOnly(body.checkout);
 
     if (!name || !email || !contact || !guests || !checkin || !checkout) {
       return sendJsonError(res, 400, "Please complete all booking fields");
@@ -848,6 +834,7 @@ app.post("/api/payment-simulator/session/:id", auth, async (req, res) => {
   }
 });
 
+// ✅ CHANGED: proof is now served directly from MongoDB as Base64
 app.get("/api/proof/:id", auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -856,7 +843,6 @@ app.get("/api/proof/:id", auth, async (req, res) => {
       return sendJsonError(res, 404, "Booking not found");
     }
 
-    // Admin or booking owner can view
     const isAdmin = req.user.role === "admin";
     const isOwner = String(booking.userId) === String(req.user.id);
     if (!isAdmin && !isOwner) {
@@ -867,18 +853,15 @@ app.get("/api/proof/:id", auth, async (req, res) => {
       return sendJsonError(res, 404, "No proof file found");
     }
 
-    const proofPath = path.join(uploadsPath, booking.proof);
-    if (!fs.existsSync(proofPath)) {
-      return sendJsonError(res, 404, "Proof file not found");
-    }
-
-    res.download(proofPath);
+    // proof is already a Base64 data URL, redirect to it
+    return res.json({ proofDataUrl: booking.proof });
   } catch (err) {
-    console.error("PROOF DOWNLOAD ERROR:", err);
-    return sendJsonError(res, 500, "Failed to download proof", err);
+    console.error("PROOF ERROR:", err);
+    return sendJsonError(res, 500, "Failed to get proof", err);
   }
 });
 
+// ✅ CHANGED: saves image as Base64 in MongoDB instead of disk
 app.put("/api/upload-proof/:id", auth, (req, res) => {
   upload.single("proof")(req, res, async (uploadErr) => {
     if (uploadErr) {
@@ -930,13 +913,18 @@ app.put("/api/upload-proof/:id", auth, (req, res) => {
         return sendJsonError(res, 400, "Your payment simulator session has expired (30 minutes limit). Please open a new session to try again.");
       }
 
-      booking.proof = req.file.filename;
+      // ✅ Convert file buffer to Base64 data URL and save to MongoDB
+      const base64 = req.file.buffer.toString("base64");
+      const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+      booking.proof = dataUrl;
+      booking.proofMimeType = req.file.mimetype;
       booking.paymentMethod = paymentMethod;
       booking.paymentReference = paymentReference;
       booking.paymentStatus = "Proof Uploaded";
       await booking.save();
 
-      console.log("✅ Payment proof uploaded:", { bookingId: booking._id, paymentMethod, filename: req.file.filename });
+      console.log("✅ Payment proof saved to MongoDB:", { bookingId: booking._id, paymentMethod });
       return res.json({ message: "✅ Payment proof uploaded successfully. Our team will verify it shortly." });
     } catch (err) {
       console.error("❌ UPLOAD ERROR:", err.message || err);

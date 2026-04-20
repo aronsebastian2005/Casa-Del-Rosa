@@ -9,10 +9,11 @@ let hasLoadedOnce = false;
 let lastBookingsSnapshot = "";
 let isRefreshing = false;
 
-const API =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
-    : "https://casa-del-rosa.onrender.com";
+const isLocal = window.location.hostname === "localhost" || 
+                window.location.hostname === "127.0.0.1" || 
+                window.location.port === "5500";
+
+const API = isLocal ? "http://localhost:5000" : "https://casa-del-rosa-backend.onrender.com";
 
 function badgeClass(status) {
   const normalized = (status || "Pending").toLowerCase();
@@ -62,6 +63,7 @@ async function loadBookings(options = {}) {
 
   try {
     isRefreshing = true;
+    console.log(`Attempting to fetch bookings from: ${API}/api/bookings`);
     const res = await fetch(`${API}/api/bookings`);
     const text = await res.text();
 
@@ -108,7 +110,7 @@ async function loadBookings(options = {}) {
 
     data.forEach((booking) => {
       const tr = document.createElement("tr");
-      const proofUrl = booking.proof ? `${API}/uploads/${booking.proof}` : "";
+      const proofUrl = booking.proof || null;
       const paymentStatus = booking.paymentStatus || "Not Started";
       const paymentBadgeClass = paymentStatus === "Proof Uploaded" ? "badge good" : paymentStatus === "Pending Proof" ? "badge warn" : "badge";
       const proofDisplay = proofUrl ? `<a class="proofLink" href="${proofUrl}" target="_blank">View</a>` : "-";

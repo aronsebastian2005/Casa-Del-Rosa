@@ -3,6 +3,11 @@ const usernameMsg = document.getElementById("usernameMsg");
 const passwordMsg = document.getElementById("passwordMsg");
 const loadingScreen = document.getElementById("adminLoadingScreen");
 
+// If already logged in, redirect to dashboard immediately
+if (localStorage.getItem("adminLoggedIn") === "true" && !window.location.href.includes("index.html")) {
+    window.location.href = "index.html";
+}
+
 function clearFieldMessages() {
   [usernameMsg, passwordMsg].forEach((element) => {
     element.textContent = "";
@@ -47,7 +52,14 @@ function attemptLogin() {
   msg.textContent = "Invalid admin username or password.";
 }
 
-document.getElementById("loginBtn").addEventListener("click", attemptLogin);
+function logoutAdmin() {
+    localStorage.removeItem("adminLoggedIn");
+    window.location.href = "login.html";
+}
+
+if (document.getElementById("loginBtn")) {
+  document.getElementById("loginBtn").addEventListener("click", attemptLogin);
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
