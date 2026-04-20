@@ -342,11 +342,37 @@ async function loadMyBookings() {
   }
 }
 
+function setupScrollAnimations() {
+  const observerOptions = {
+    threshold: 0.15
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("active");
+      }
+    });
+  }, observerOptions);
+
+  // Apply '.reveal' class to sections and images automatically
+  const targets = document.querySelectorAll("section, .landing-card, .gallery img, .feature-item");
+  targets.forEach((el) => {
+    el.classList.add("reveal");
+    observer.observe(el);
+  });
+}
+
 (async function () {
   const isLoggedIn = Boolean(getToken());
   setupAdminMenu(isLoggedIn);
   setupSectionNav();
   setupLandingActions(isLoggedIn);
+  
+  // Initialize animations
+  setTimeout(() => {
+    setupScrollAnimations();
+  }, 100);
 
   if (!isLoggedIn) {
     return;
