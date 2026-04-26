@@ -327,6 +327,7 @@
   <script src="auth.js"></script>
   <script>
     let bookingId = new URLSearchParams(window.location.search).get("bookingId");
+    const qrImage = document.getElementById("qrImage");
     const accountName = document.getElementById("accountName");
     const accountNumber = document.getElementById("accountNumber");
     const paymentAmount = document.getElementById("paymentAmount");
@@ -337,6 +338,20 @@
     const confirmBtn = document.getElementById("confirmBtn");
     const cancelBtn = document.getElementById("cancelBtn");
     const statusMsg = document.getElementById("statusMsg");
+
+    function normalizeDateOnly(value) {
+      const str = String(value || "").trim();
+      return str ? str.slice(0, 10) : "";
+    }
+
+    function isWeekend(dateStr) {
+      const normalized = normalizeDateOnly(dateStr);
+      if (!normalized) return false;
+
+      const parts = normalized.split("-").map(Number);
+      const weekday = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])).getUTCDay();
+      return weekday === 0 || weekday === 5 || weekday === 6;
+    }
 
     async function getLatestBookingId() {
       try {
@@ -389,6 +404,7 @@
         }
 
         const amount = `P${Number(booking.total || 0).toLocaleString()}`;
+        const qrSource = isWeekend(booking.checkin) ? "assets/gcash1.jpg" : "assets/gcash.jpg";
 
         accountName.textContent = sessionResult.accountName || "Casa Del Rosa GCash Demo";
         accountNumber.textContent = sessionResult.accountNumber || "0917-555-0148";
@@ -397,6 +413,7 @@
         refDisplay.textContent = sessionResult.reference;
         stepAmount.textContent = amount;
         stepRef.textContent = sessionResult.reference;
+        qrImage.src = qrSource;
       } catch (err) {
         statusMsg.className = "msg error";
         statusMsg.textContent = `❌ ${err.message}`;

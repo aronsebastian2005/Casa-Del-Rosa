@@ -516,6 +516,26 @@ th{
   box-shadow:none;
 }
 
+.reservation-field.is-invalid input,
+.reservation-field.is-invalid select,
+.reservation-field.is-invalid textarea{
+  border-color:#c94b4b;
+  background:rgba(255, 242, 242, .96);
+  box-shadow:0 0 0 4px rgba(201,75,75,.12);
+}
+
+.reservation-field.is-invalid label{
+  color:#a33939;
+}
+
+.reservation-field-error{
+  min-height:18px;
+  color:#a33939;
+  font-family:"Montserrat","Segoe UI",Arial,sans-serif;
+  font-size:.82rem;
+  line-height:1.4;
+}
+
 .reservation-form-grid textarea{
   min-height:146px;
   resize:vertical;

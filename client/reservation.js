@@ -228,21 +228,124 @@ function calculateTotal() {
   return finalTotal;
 }
 
-function showSuccessState(payload) {
-  const successCard = document.getElementById("successCard");
-  const successText = document.getElementById("successText");
-  const formCard = document.querySelector(".reservation-form-card");
-  const side = document.querySelector(".reservation-side");
+function setFieldError(fieldId, message) {
+  const input = document.getElementById(fieldId);
+  const field = input ? input.closest(".reservation-field") : null;
+  const errorEl = document.getElementById(`${fieldId}Error`);
 
-  if (!successCard || !successText || !formCard || !side) {
+  if (!input || !field || !errorEl) {
     return;
   }
 
-  successText.textContent = `Thank you, ${payload.name}. Your reservation request has been submitted. Our team will confirm your booking within 24 hours at ${payload.email}. Payment is only required after approval.`;
-  formCard.hidden = true;
-  side.hidden = true;
-  successCard.hidden = false;
-  successCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  const hasError = Boolean(message);
+  field.classList.toggle("is-invalid", hasError);
+  input.setAttribute("aria-invalid", hasError ? "true" : "false");
+  errorEl.textContent = message || "";
+}
+
+function clearFieldError(fieldId) {
+  setFieldError(fieldId, "");
+}
+
+function validateField(fieldId) {
+  const input = document.getElementById(fieldId);
+  if (!input) return "";
+
+  const rawValue = input.value;
+  const value = typeof rawValue === "string" ? rawValue.trim() : rawValue;
+  let message = "";
+
+  if (fieldId === "name") {
+    if (!value) {
+      message = "Please enter your full name.";
+    }
+  } else if (fieldId === "email") {
+    if (!value) {
+      message = "Please enter your email address.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      message = "Please enter a valid email address.";
+    }
+  } else if (fieldId === "contact") {
+    if (!value) {
+      message = "Please enter your contact number.";
+    } else if (String(value).replace(/\D/g, "").length < 10) {
+      message = "Please enter a valid contact number.";
+    }
+  } else if (fieldId === "guests") {
+    if (!value) {
+      message = "Please enter the number of guests.";
+    } else if (Number(value) < 1) {
+      message = "Guests must be at least 1.";
+    }
+  } else if (fieldId === "eventType") {
+    if (!value) {
+      message = "Please select an event type.";
+    }
+  } else if (fieldId === "checkin") {
+    if (!value) {
+      message = "Please choose a check-in date.";
+    }
+  } else if (fieldId === "checkout") {
+    if (!value) {
+      message = "Please choose a check-out date.";
+    }
+  }
+
+  setFieldError(fieldId, message);
+  return message;
+}
+
+function validateDateFields(checkin, checkout) {
+  const dateError = validateReservationDates(checkin, checkout);
+
+  if (!dateError) {
+    if (checkin) clearFieldError("checkin");
+    if (checkout) clearFieldError("checkout");
+    return "";
+  }
+
+  if (dateError.toLowerCase().includes("check-in")) {
+    setFieldError("checkin", dateError);
+    clearFieldError("checkout");
+  } else {
+    setFieldError("checkout", dateError);
+    if (checkin) clearFieldError("checkin");
+  }
+
+  return dateError;
+}
+
+function validateReservationForm(form) {
+  const requiredFieldIds = ["name", "email", "contact", "checkin", "checkout", "guests", "eventType"];
+  let firstError = "";
+
+  requiredFieldIds.forEach((fieldId) => {
+    const error = validateField(fieldId);
+    if (!firstError && error) {
+      firstError = error;
+    }
+  });
+
+  const checkin = normalizeDateOnly(form.checkin.value);
+  const checkout = normalizeDateOnly(form.checkout.value);
+
+  if (checkin && checkout) {
+    const dateError = validateDateFields(checkin, checkout);
+    if (!firstError && dateError) {
+      firstError = dateError;
+    }
+  }
+
+  return firstError;
+}
+
+function redirectToSuccessPage(payload) {
+  const params = new URLSearchParams({
+    name: payload.name,
+    email: payload.email
+  });
+
+  window.location.href = `request-received?${params.toString()}`;
 }
 
 (async function () {
@@ -285,6 +388,21 @@ function showSuccessState(payload) {
   document.getElementById("checkin").addEventListener("change", calculateTotal);
   document.getElementById("checkout").addEventListener("change", calculateTotal);
   document.getElementById("guests").addEventListener("input", calculateTotal);
+  ["name", "email", "contact", "guests"].forEach((fieldId) => {
+    document.getElementById(fieldId).addEventListener("input", () => {
+      validateField(fieldId);
+    });
+  });
+  ["checkin", "checkout", "eventType"].forEach((fieldId) => {
+    document.getElementById(fieldId).addEventListener("change", () => {
+      validateField(fieldId);
+      const checkin = normalizeDateOnly(document.getElementById("checkin").value);
+      const checkout = normalizeDateOnly(document.getElementById("checkout").value);
+      if (checkin && checkout) {
+        validateDateFields(checkin, checkout);
+      }
+    });
+  });
 
   const today = getTodayDateOnly();
   document.getElementById("checkin").min = today;
@@ -299,6 +417,12 @@ function showSuccessState(payload) {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     msg.textContent = "Submitting your reservation request...";
+
+    const validationError = validateReservationForm(form);
+    if (validationError) {
+      msg.textContent = validationError;
+      return;
+    }
 
     const total = calculateTotal();
     if (!total) {
@@ -321,6 +445,7 @@ function showSuccessState(payload) {
 
       const dateError = validateReservationDates(payload.checkin, payload.checkout);
       if (dateError) {
+        validateDateFields(payload.checkin, payload.checkout);
         msg.textContent = dateError;
         return;
       }
@@ -334,9 +459,9 @@ function showSuccessState(payload) {
       });
 
       msg.textContent = "";
-      showSuccessState(payload);
       form.reset();
       calculateTotal();
+      redirectToSuccessPage(payload);
     } catch (err) {
       msg.textContent = err.message;
     }

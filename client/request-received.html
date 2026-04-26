@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Casa Del Rosa | Request Received</title>
+  <link rel="stylesheet" href="client.css"/>
+</head>
+<body class="reservation-page">
+  <div class="reservation-shell">
+    <section class="reservation-success-card">
+      <div class="reservation-success-icon">OK</div>
+      <h2>Request Received!</h2>
+      <p id="successMessage">Your reservation request has been submitted.</p>
+      <div class="reservation-success-contact">
+        <span>For urgent inquiries, call us at <strong>0985-475-7688</strong> or email <strong>casadelrosa@email.com</strong>.</span>
+      </div>
+      <button type="button" onclick="window.location.href='home.html'">Return to Casa Del Rosa</button>
+    </section>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const name = (params.get("name") || "Guest").trim();
+    const email = (params.get("email") || "").trim();
+    const successMessage = document.getElementById("successMessage");
+
+    if (email) {
+      successMessage.textContent = `Thank you, ${name}. Your reservation request has been submitted. Our team will review it and contact you within 24 hours at ${email}. Payment is only required after approval.`;
+    } else {
+      successMessage.textContent = `Thank you, ${name}. Your reservation request has been submitted. Our team will review it and contact you soon. Payment is only required after approval.`;
+    }
+  </script>
+</body>
+</html>

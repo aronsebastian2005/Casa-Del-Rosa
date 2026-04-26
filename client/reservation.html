@@ -46,36 +46,42 @@
           <div class="reservation-field reservation-field-full">
             <label for="name">Full Name</label>
             <input name="name" id="name" placeholder="Your full name" required />
+            <div class="reservation-field-error" id="nameError"></div>
           </div>
 
           <div class="reservation-field">
             <label for="email">Email Address</label>
             <input name="email" id="email" type="email" placeholder="your@email.com" required />
+            <div class="reservation-field-error" id="emailError"></div>
           </div>
 
           <div class="reservation-field">
             <label for="contact">Contact Number</label>
             <input name="contact" id="contact" placeholder="09XX-XXX-XXXX" required />
+            <div class="reservation-field-error" id="contactError"></div>
           </div>
 
           <div class="reservation-field">
             <label for="checkin">Check-in Date</label>
             <input name="checkin" id="checkin" type="date" required />
+            <div class="reservation-field-error" id="checkinError"></div>
           </div>
 
           <div class="reservation-field">
             <label for="checkout">Check-out Date</label>
             <input name="checkout" id="checkout" type="date" required />
+            <div class="reservation-field-error" id="checkoutError"></div>
           </div>
 
           <div class="reservation-field">
             <label for="guests">Number of Guests</label>
             <input name="guests" id="guests" type="number" min="1" placeholder="e.g. 50" required />
+            <div class="reservation-field-error" id="guestsError"></div>
           </div>
 
           <div class="reservation-field">
             <label for="eventType">Event Type</label>
-            <select name="eventType" id="eventType">
+            <select name="eventType" id="eventType" required>
               <option value="">Select event type</option>
               <option value="Family Gathering">Family Gathering</option>
               <option value="Barkada Weekend">Barkada Weekend</option>
@@ -84,6 +90,7 @@
               <option value="Wedding / Reception">Wedding / Reception</option>
               <option value="Other">Other</option>
             </select>
+            <div class="reservation-field-error" id="eventTypeError"></div>
           </div>
 
           <div class="reservation-field reservation-field-full">

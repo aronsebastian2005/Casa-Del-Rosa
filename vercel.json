@@ -29,6 +29,10 @@
     {
       "source": "/reservation",
       "destination": "/client/reservation.html"
+    },
+    {
+      "source": "/request-received",
+      "destination": "/client/request-received.html"
     }
   ]
 }
