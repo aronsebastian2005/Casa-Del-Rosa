@@ -124,6 +124,9 @@ const mailer = nodemailer.createTransport({
   host: SMTP_HOST,
   port: SMTP_PORT,
   secure: SMTP_SECURE,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
   auth: {
     user: SMTP_USER,
     pass: SMTP_PASS
@@ -514,9 +517,9 @@ app.post("/api/auth/resend-code", async (req, res) => {
     user.verificationCode = code;
     user.verificationCodeExpires = expires;
     await user.save();
-    await sendVerificationEmail(normalizedEmail, code, user.name);
+    queueVerificationEmail(normalizedEmail, code, user.name);
 
-    return res.json({ message: "New verification code sent to your email" });
+    return res.json({ message: "New verification code is being sent to your email" });
   } catch (err) {
     console.log("RESEND ERROR:", err);
     return sendJsonError(res, 500, "Resend failed", err);
