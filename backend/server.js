@@ -111,33 +111,96 @@ const SMTP_HOST = process.env.SMTP_HOST || "";
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const SMTP_SECURE = String(process.env.SMTP_SECURE || "true").toLowerCase() !== "false";
 const SMTP_USER = process.env.SMTP_USER || "";
-const SMTP_PASS = process.env.SMTP_PASS || "";
+const SMTP_PASS = (process.env.SMTP_PASS || "").replace(/\s+/g, "");
 const SMTP_FROM_EMAIL = process.env.SMTP_FROM_EMAIL || "";
+const BREVO_API_KEY = process.env.BREVO_API_KEY || "";
 const PORT = Number(process.env.PORT || 5000);
+const hasSmtpConfig = Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS && SMTP_FROM_EMAIL);
 
-if (!MONGODB_URI || !JWT_SECRET || !SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM_EMAIL) {
+if (!MONGODB_URI || !JWT_SECRET || !SMTP_FROM_EMAIL || (!BREVO_API_KEY && !hasSmtpConfig)) {
   console.error("Missing required environment variables. Check backend/.env or hosting env settings.");
   process.exit(1);
 }
 
-const mailer = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_SECURE,
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS
-  }
-});
+const mailer = hasSmtpConfig
+  ? nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS
+      }
+    })
+  : null;
 
 mongoose.connect(MONGODB_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.log("❌ MongoDB error:", err));
 
-async function sendEmail({ to, subject, html }) {
+function getSender() {
+  const match = SMTP_FROM_EMAIL.match(/^(.*?)\s*<([^>]+)>$/);
+
+  if (match) {
+    return {
+      name: match[1].trim() || "Casa Del Rosa",
+      email: match[2].trim()
+    };
+  }
+
+  return {
+    name: "Casa Del Rosa",
+    email: SMTP_FROM_EMAIL.trim()
+  };
+}
+
+async function sendEmailWithBrevo({ to, subject, html }) {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": BREVO_API_KEY
+    },
+    body: JSON.stringify({
+      sender: getSender(),
+      to: [{ email: to }],
+      subject,
+      htmlContent: html
+    })
+  });
+
+  const text = await response.text();
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    const message = data && data.message ? data.message : text || `Brevo API error ${response.status}`;
+    const err = new Error(message);
+    err.code = `BREVO_${response.status}`;
+    throw err;
+  }
+
+  console.log("✅ Brevo email sent:", {
+    to,
+    messageId: data && data.messageId ? data.messageId : null
+  });
+
+  return data;
+}
+
+async function sendEmailWithSmtp({ to, subject, html }) {
+  if (!mailer) {
+    throw new Error("SMTP is not configured");
+  }
+
   try {
     const info = await mailer.sendMail({
       from: SMTP_FROM_EMAIL,
@@ -163,6 +226,24 @@ async function sendEmail({ to, subject, html }) {
     });
     throw err;
   }
+}
+
+async function sendEmail(message) {
+  if (BREVO_API_KEY) {
+    try {
+      return await sendEmailWithBrevo(message);
+    } catch (err) {
+      console.error("❌ BREVO SEND FAILED:", {
+        error: err.message,
+        code: err.code,
+        to: message.to,
+        subject: message.subject
+      });
+      throw err;
+    }
+  }
+
+  return sendEmailWithSmtp(message);
 }
 
 function auth(req, res, next) {
@@ -517,9 +598,9 @@ app.post("/api/auth/resend-code", async (req, res) => {
     user.verificationCode = code;
     user.verificationCodeExpires = expires;
     await user.save();
-    queueVerificationEmail(normalizedEmail, code, user.name);
+    await sendVerificationEmail(normalizedEmail, code, user.name);
 
-    return res.json({ message: "New verification code is being sent to your email" });
+    return res.json({ message: "New verification code sent to your email" });
   } catch (err) {
     console.log("RESEND ERROR:", err);
     return sendJsonError(res, 500, "Resend failed", err);
