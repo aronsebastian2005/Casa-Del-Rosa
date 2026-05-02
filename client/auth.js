@@ -14,7 +14,7 @@ function getConfiguredApiBase() {
   }
 
   if (/\.vercel\.app$/i.test(window.location.hostname)) {
-    return "https://casa-del-rosa-backend.onrender.com";
+    return "";
   }
 
   return "https://casa-del-rosa-backend.onrender.com";
