@@ -56,7 +56,8 @@ async function apiFetch(path, options = {}) {
   }
 
   if (!res.ok) {
-    const msg = data && data.message ? data.message : "Request failed: " + res.status;
+    const details = data && data.error ? ` (${data.error})` : "";
+    const msg = data && data.message ? data.message + details : "Request failed: " + res.status;
     throw new Error(msg);
   }
 

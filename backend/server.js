@@ -355,6 +355,8 @@ async function sendResetPasswordEmail(toEmail, code, name) {
 
 // ---------- AUTH ROUTES ----------
 app.post("/api/auth/register", async (req, res) => {
+  let createdUser = null;
+
   try {
     const { name, email, password } = req.body;
 
@@ -399,7 +401,7 @@ app.post("/api/auth/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await User.create({
+    createdUser = await User.create({
       name: trimmedName,
       email: normalizedEmail,
       passwordHash,
@@ -416,6 +418,18 @@ app.post("/api/auth/register", async (req, res) => {
     });
   } catch (err) {
     console.log("REGISTER ERROR:", err);
+
+    if (err && (err.code || err.command || /smtp|mail|email|gmail|auth/i.test(err.message || ""))) {
+      return sendJsonError(
+        res,
+        500,
+        createdUser
+          ? "Account was created, but the verification email could not be sent. Please use Resend Code or contact support."
+          : "Verification email could not be sent. Please try Resend Code or contact support.",
+        err.message
+      );
+    }
+
     return sendJsonError(res, 500, "Register failed", err);
   }
 });
