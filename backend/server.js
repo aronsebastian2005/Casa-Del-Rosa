@@ -201,13 +201,6 @@ function sendJsonError(res, status, message, error = null) {
   return res.status(status).json(error ? { message, error: String(error) } : { message });
 }
 
-function queueVerificationEmail(email, code, name) {
-  sendVerificationEmail(email, code, name).catch((err) => {
-    console.error("❌ VERIFICATION EMAIL ERROR:", err.message || err);
-    console.error("Email details:", { to: email, subject: "Your Casa Del Rosa Verification Code" });
-  });
-}
-
 function normalizeDateOnly(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -396,7 +389,7 @@ app.post("/api/auth/register", async (req, res) => {
       existingUser.verificationCode = code;
       existingUser.verificationCodeExpires = expires;
       await existingUser.save();
-      queueVerificationEmail(normalizedEmail, code, trimmedName);
+      await sendVerificationEmail(normalizedEmail, code, trimmedName);
 
       return res.json({
         message: "Verification code sent to your email",
@@ -415,7 +408,7 @@ app.post("/api/auth/register", async (req, res) => {
       verificationCodeExpires: expires
     });
 
-    queueVerificationEmail(normalizedEmail, code, trimmedName);
+    await sendVerificationEmail(normalizedEmail, code, trimmedName);
 
     return res.json({
       message: "Verification code sent to your email",
