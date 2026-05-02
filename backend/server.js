@@ -50,7 +50,8 @@ const allowedOrigins = new Set([
   "http://127.0.0.1:5500",
   "http://localhost:5500",
   "https://casa-del-rosa-frontend.onrender.com",
-  "https://casa-del-rosa-admin.onrender.com"
+  "https://casa-del-rosa-admin.onrender.com",
+  "https://casa-del-rosa-zs5x.vercel.app"
 ]);
 
 const extraAllowedOrigins = String(process.env.ALLOWED_ORIGINS || "")
