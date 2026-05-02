@@ -201,6 +201,17 @@ function sendJsonError(res, status, message, error = null) {
   return res.status(status).json(error ? { message, error: String(error) } : { message });
 }
 
+function queueVerificationEmail(email, code, name) {
+  sendVerificationEmail(email, code, name).catch((err) => {
+    console.error("❌ VERIFICATION EMAIL ERROR:", {
+      error: err.message,
+      code: err.code,
+      command: err.command,
+      to: email
+    });
+  });
+}
+
 function normalizeDateOnly(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -391,10 +402,10 @@ app.post("/api/auth/register", async (req, res) => {
       existingUser.verificationCode = code;
       existingUser.verificationCodeExpires = expires;
       await existingUser.save();
-      await sendVerificationEmail(normalizedEmail, code, trimmedName);
+      queueVerificationEmail(normalizedEmail, code, trimmedName);
 
       return res.json({
-        message: "Verification code sent to your email",
+        message: "Account updated. Your verification code is being sent to your email.",
         email: normalizedEmail
       });
     }
@@ -410,10 +421,10 @@ app.post("/api/auth/register", async (req, res) => {
       verificationCodeExpires: expires
     });
 
-    await sendVerificationEmail(normalizedEmail, code, trimmedName);
+    queueVerificationEmail(normalizedEmail, code, trimmedName);
 
     return res.json({
-      message: "Verification code sent to your email",
+      message: "Account created. Your verification code is being sent to your email.",
       email: normalizedEmail
     });
   } catch (err) {
